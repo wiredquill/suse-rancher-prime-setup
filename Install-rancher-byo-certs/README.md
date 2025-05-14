@@ -1,107 +1,113 @@
-# Install Rancher with Let's Encrypt Certificates with CloudFlare DNS Challenge
+# Install Rancher with a Wildcard Certificate
 
-This project automates the setup of Rancher using K3s, Cert-Manager, and Let's Encrypt with Cloudflare DNS.
+This project automates the setup of Rancher using K3s, Cert-Manager, and wildcard certificates.
+
+You will need:
+
+- `cert` = `fullchain.pem`
+- `key` = `privkey.pem`
 
 ## 🧩 Files & Templates
 
-- `config.env.example` – Copy this to `config.env` and edit for your domain
-- `1-install-k3s.sh` – Installs K3s and sets up kubeconfig for user 'erin'
-- `2-install-cert-manager.sh` – Installs cert-manager v1.17.1
-- `3-install-rancher.sh` – Installs Rancher via Helm using the hostname from config
-- `clusterissuer.yaml.template` – Cert-Manager issuer using Cloudflare DNS challenge
-- `rancher-cert.yaml.template` – TLS cert for Rancher ingress
-- `bootstrap.sh` – Optional script to render YAMLs and apply everything
+- `config.env.example` – Copy this to `config.env` and edit for your domain.
+- `1-install-k3s.sh` – Installs K3s and sets up kubeconfig for user 'erin'.
+- `2-create-secret.sh` – Creates secrets from `fullchain.pem` and `privkey.pem`.
+- `3-install-rancher.sh` – Installs Rancher via Helm using the secret created in the previous step.
 
-## 🚀 Quick Start - Using Batch Scripts
+## 🚀 Quick Start – Using Batch Scripts
 
 1. Copy and edit your configuration:
+
    ```bash
    cp config.env.example config.env
    nano config.env
    ```
 
-2. Run scripts in order:
+2. Run the scripts in order:
+
    ```bash
    chmod +x *.sh
-   ./1-install-k3s.sh             - Installs K3s 
-   ./2-install-cert-manager.sh    - Install Cert-Manager with the crds
-   ./3-create-certs.sh            - Creates and applies clusterIssuer.yaml rancher-cert.yaml
-   ./4-install-rancher.sh         - Install Rancher
+   ./1-install-k3s.sh      # Installs K3s
+   ./2-create-secret.sh    # Creates secrets from cert and key
+   ./3-install-rancher.sh  # Installs Rancher
    ```
 
-## 🔧 Manual Method
+## 🔧 Manual Installation Method
 
-### Copy and Prepare config files:
+### 1. Prepare Configuration
+
+Copy the example config and edit it with your domain information:
 
 ```bash
 cp config.env.example config.env
 nano config.env
 ```
-Replace Default values with your own
 
-```config.env
-   DOMAIN=example.com
-   RANCHER_HOSTNAME=rancher.example.com
-   CLOUDFLARE_EMAIL=you@example.com
-   CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+Update the following variables in `config.env`:
+
+```env
+DOMAIN=example.com
+RANCHER_HOSTNAME=rancher.example.com
 ```
 
-### Install K3s
-```
+### 2. Install K3s
+
+Run the following command to install K3s:
+
+```bash
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.31.6+k3s1" sh -
 ```
 
-#### Make the kubeconfig readable for erin
-```
+### 3. Set Up Kubeconfig
+
+Export the kubeconfig environment variable:
+
+```bash
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ```
-#### Verify Kubernetes is running
 
-```
+Verify that Kubernetes is running:
+
+```bash
 kubectl get nodes
 ```
 
-### Install Cert-Manager
+### 4. Create Secrets for Certificates
 
-"Installing cert-manager v1.17.2..."
+Create the namespace for Rancher:
 
-#### Add the cert-manager Repo
-
+```bash
+kubectl create namespace cattle-system
 ```
-helm repo add jetstack https://charts.jetstack.io --force-update
+
+Create the TLS secret using your certificate and key:
+
+```bash
+kubectl -n cattle-system create secret tls tls-rancher-ingress \
+  --cert=fullchain.pem \
+  --key=privkey.pem
+```
+
+### 5. Install Rancher
+
+Add the Rancher Helm repository and update:
+
+```bash
+helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
 helm repo update
 ```
 
-#### Install cert-manager with crds
+Install Rancher with the specified settings:
+
+```bash
+helm install rancher rancher-latest/rancher \
+  --namespace cattle-system \
+  --set hostname=$RANCHER_HOSTNAME \
+  --set ingress.tls.source=secret \
+  --set privateCA=false \
+  --set replicas=1 \
+  --set global.cattle.psp.enabled=false \
+  --set bootstrapPassword=admin
+
+kubectl rollout status deployment rancher -n cattle-system --timeout=300s
 ```
-helm install \
-  cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --version v1.17.2 \
-  --set crds.enabled=true
-```
-
-#### Verify the install
-
-```
-kubectl rollout status deployment cert-manager -n cert-manager --timeout=120s
-```
-```
-kubectl rollout status deployment cert-manager-webhook -n cert-manager --timeout=120s
-```
-
-
-
-
-If you prefer **not to use templates**, just replace values like domain and email directly inside:
-- `clusterissuer.yaml`
-- `rancher-cert.yaml`
-- Helm commands in `3-install-rancher.sh`
-
-Then skip the `.env` and `envsubst` steps entirely.
-
-## 📎 Requirements
-
-- Cloudflare API token with DNS edit permissions
-- DNS A record pointing your domain (e.g. rancher.example.com) to the node IP
