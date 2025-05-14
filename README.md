@@ -1,0 +1,1 @@
+# suse-rancher-prime-setup
