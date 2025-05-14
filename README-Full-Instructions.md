@@ -1,23 +1,26 @@
 # Lab Setup Instructions
 
-The Cloud Native Tech Lab makes it easy for you to build a deploy demo environments that leverge SUSE technoly and utilizing either your own lab equpment of can be run entirley in the cloud.
-
-When you create Downstream Cluster, 
-
-Once the base system is installed you add capability to any cluster by simply adding a Kubernetes Label and Fleet will do the rest. Need SUSE Private Regisrty for a demo? Simple add the label, `needs-private-registry`=`true` sit back and in a matter of minutes you will have a SUSE private regsisty installed and fully configured (I.E. Proxy cache to Application Collection configured and ingress setup).
-
-Current supported Add Ones
-
-`needs-storage`  - Installs Longhorn, setups up default storageclass with 1 replica
-`needs-security` - Installs SUSE Security configures autoscan  
-`needs-ingress-nginx` - Installs and creates an ingress-nginx - needed for ALL k3s clusters (to support certs)
-`needs-private-registry` - Installs SUSE Private Registry and Creates a 
-
 ## Overview
+
+The Cloud Native Tech Lab makes it easy for you to build and deploy demo environments that leverage SUSE technology and utilize either your own lab equipment or can be run entirely in the cloud.
+
 This document outlines the setup procedure for a demo lab environment utilizing Rancher and Kubernetes clusters.
 
-Once you have downstream clusters deployed in your main 
+When you create a Downstream Cluster, by default every cluster gets the following:
 
+- Secret - Imported from `downstream-cluster.yaml` - includes `SCC Credential`, `Application Collection Creds`, `CloudFlare Creds`, and `SUSE Observability Lic`.
+- Sprouter - Utility to copy secrets to all namespaces (application-collection, scc, etc.).
+- Cert-Manager - Installed and configured leveraging content from `downstream-cluster.yaml` and the `hosted-domain` annotation.
+- Application Collection in Rancher UI - Application Collection defined as a Repository in the Rancher UI.
+
+Once the base system is installed, you add capability to any cluster by simply adding a Kubernetes Label and Fleet will do the rest. Need SUSE Private Registry for a demo? Simply add the label, `needs-private-registry=true`, sit back, and in a matter of minutes you will have a SUSE private registry installed and fully configured (i.e., Proxy cache to Application Collection configured and ingress setup).
+
+Current supported Add-ons:
+
+- `needs-storage`  - Installs Longhorn, sets up default storageclass with 1 replica.
+- `needs-security` - Installs SUSE Security, configures autoscan.  
+- `needs-ingress-nginx` - Installs and creates an ingress-nginx, needed for ALL k3s clusters (to support certs).
+- `needs-private-registry` - Installs SUSE Private Registry and creates a proxy cache for Application Collection (using your credentials).
 
 ## Prerequisites
 
@@ -67,33 +70,9 @@ You will set up three separate clusters:
 
 ## Installing Rancher
 
-Rancher version: `2.11.0`
+Rancher version: `2.11.1+`
 
-
-### Option 2: Kubernetes Installation (K3s with Helm)
-
-#### Steps
-1. Install K3s:
-    ```bash
-    curl -sfL https://get.k3s.io | sh -
-    ```
-
-2. Install Cert-Manager:
-    ```bash
-    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
-    ```
-
-3. Install Rancher via Helm:
-    ```bash
-    helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
-    helm install rancher rancher-stable/rancher \
-      --namespace cattle-system \
-      --create-namespace \
-      --set hostname=rancher.dna-42.com \
-      --set ingress.tls.source=letsEncrypt \
-      --set letsEncrypt.email=<your-email@example.com> \
-      --set letsEncrypt.ingress.class=traefik
-    ```
+To install Rancher, follow the official Rancher installation guide for your environment. Ensure you have a Kubernetes cluster ready to host Rancher and that your DNS is configured to point to the Rancher server.
 
 ### Post-installation Configuration
 After Rancher installation:
@@ -106,7 +85,6 @@ After Rancher installation:
 ---
 
 ## Installing Downstream Infrastructure Cluster
-
 
 Use the Rancher UI to create a downstream cluster with the following configuration:
 - Cluster Type: RKE2
