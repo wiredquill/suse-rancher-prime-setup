@@ -1,0 +1,10 @@
+apiVersion: catalog.cattle.io/v1
+kind: ClusterRepo
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  clientSecret:
+    name: {{ .Values.secret.name }}
+    namespace: {{ .Values.secret.namespace }}
+  insecurePlainHttp: false
+  url: {{ .Values.ociRegistry}}

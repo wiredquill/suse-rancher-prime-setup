@@ -1,0 +1,4 @@
+ociRegistry: ""
+secret:
+  name: application-collection-basicauth
+  namespace: cattle-system

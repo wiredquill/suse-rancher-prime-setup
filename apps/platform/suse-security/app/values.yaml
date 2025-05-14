@@ -1,0 +1,82 @@
+# global:
+#   cattle:
+#     url: https://rancher.mars.lab.geeko.me
+registry: registry.rancher.com
+labels:
+  catalog.cattle.io/cluster-repo-name: rancher-charts
+manager:
+  ingress:
+    enabled: ${ if hasKey .ClusterAnnotations "hosted-domain" }true${ else }false${ end}
+    tls: true
+    env:
+      ssl: true
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    host: ${ if hasKey .ClusterAnnotations "hosted-domain" }security.${ .ClusterName }.${ get .ClusterAnnotations "hosted-domain" }${ end}
+    secretName: neuvector-tls
+  svc:
+    type: ClusterIP
+k3s:
+  enabled: true
+  runtimePath: /run/k3s/containerd/containerd.sock
+controller:
+  replicas: 1
+  prime:
+    enabled: true
+  federation:
+    mastersvc:
+      type: ClusterIP
+  pvc:
+    enabled: true
+  # ranchersso:
+  #   enabled: true
+  configmap:
+    enabled: true
+    data:
+      passwordprofileinitcfg.yaml: |
+        active_profile_name: default
+        pwd_profiles:
+        # only default profile is supported.
+        - name: default
+          comment: default from configMap
+          min_len: 6
+          min_uppercase_count: 0
+          min_lowercase_count: 0
+          min_digit_count: 0
+          min_special_count: 0
+          enable_block_after_failed_login: false
+          block_after_failed_login_count: 0
+          block_minutes: 0
+          enable_password_expiration: false
+          password_expire_after_days: 0
+          enable_password_history: false
+          password_keep_history_count: 0
+          # Optional. value between 30 -- 3600  default 300
+          session_timeout: 3600
+      # ...
+      # roleinitcfg.yaml: |
+      #  ...
+      # ldapinitcfg.yaml: |
+      #  ...
+      # oidcinitcfg.yaml: |
+      # ...
+      # samlinitcfg.yaml: |
+      # ...
+      sysinitcfg.yaml: |
+        New_Service_Profile_Baseline: basic
+        Auth_By_Platform: true
+        Cluster_Name: ${ .ClusterName }
+        Scan_Config:
+          Auto_Scan: true
+      userinitcfg.yaml: |
+        users:
+        - Fullname: admin
+          Password: admin
+          Role: admin
+          Timeout: 3600
+cve:
+  scanner:
+    enabled: true
+    replicas: 1
+# rbac: true
+

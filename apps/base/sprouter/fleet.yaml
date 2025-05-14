@@ -1,0 +1,6 @@
+defaultNamespace: sprouter
+helm:
+  chart: oci://ghcr.io/hierynomus/sprouter/charts/sprouter
+  releaseName: sprouter
+labels:
+  app: sprouter

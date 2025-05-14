@@ -1,0 +1,69 @@
+global:
+  imageRegistry: "registry.rancher.com"
+
+ingress:
+  enabled: ${if hasKey .ClusterAnnotations "hosted-domain"}true${else}false${end}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    kubernetes.io/ingress.class: "nginx"
+opentelemetry-collector:
+  ingress:
+    enabled: ${ if hasKey .ClusterAnnotations "hosted-domain" }true${else}false${end}
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      kubernetes.io/ingress.class: "nginx"
+opentelemetry:
+  enabled: true
+
+
+stackstate:
+  authentication:
+    serviceToken:
+      bootstrap:
+        token: 1234-abcd-5678-efgh
+        roles: ["stackstate-k8s-troubleshooter", "stackstate-admin", "stackstate-k8s-admin"]
+    adminPassword: "$2a$10$1XyTg9cAAeRlMaCnNmeQ4OSikJhRj6oW1BOSc/A44HGrubQcreS.e" # !nfiniteP0wer
+  apiKey:
+    key: "beTRIDqKh6xvXpCw6wkxIt9bvoyLwJGU"
+
+  experimental:
+    traces: true
+  deployment:
+    mode: SelfHosted
+    edition: "Prime"
+  components:
+    all:
+      extraEnv:
+        open:
+          CONFIG_FORCE_stackgraph_retentionWindowMs: "86400000"
+          CONFIG_FORCE_stackstate_traces_retentionDays: "1"
+          CONFIG_FORCE_stackstate_featureSwitches_monitorEnableExperimentalAPIs: "true"
+    server:
+      config: |
+        stackstate.webUIConfig.defaultTimeRange: "LAST_1_HOUR"
+    e2es:
+      retention: 1
+    receiver:
+      extraEnv:
+        open:
+          CONFIG_FORCE_stackstate_receiver_processAgent_maxConnectionObservationsPerHost: "150000"
+          CONFIG_FORCE_stackstate_receiver_processAgent_maxComponentsPerHost: "10000"
+          CONFIG_FORCE_stackstate_receiver_processAgent_maxRelationsPerHost: "10000"
+          CONFIG_FORCE_stackstate_receiver_processAgent_maxNewRelationsHourlyPerHost: "10000"
+          CONFIG_FORCE_stackstate_receiver_processAgent_maxNewComponentsHourlyPerHost: "10000"
+      retention: 1
+    state:
+      config: |
+        stackstate.stateService.defaultPropagation = Transparent
+victoria-metrics-0:
+  backup:
+    enabled: false
+clickhouse:
+  enabled: true
+  backup:
+    enabled: false
+backup:
+  enabled: false

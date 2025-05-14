@@ -1,0 +1,13 @@
+helm:
+  chart: ""
+  releaseName: application-collection
+  values:
+    registry: dp.apps.rancher.io
+    ociRegistry: oci://dp.apps.rancher.io/charts
+  valuesFrom:
+    - secretKeyRef:
+        name: fleet-secrets
+        namespace: kube-system
+        key: appco-values.yaml
+labels:
+  provides: application-collection

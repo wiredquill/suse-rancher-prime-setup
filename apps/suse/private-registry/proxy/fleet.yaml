@@ -1,0 +1,24 @@
+defaultNamespace: harbor
+helm:
+  chart: ""
+  releaseName: private-registry-proxy-cache
+  valuesFrom:
+    - secretKeyRef:
+        name: fleet-secrets
+        namespace: kube-system
+        key: harbor-values.yaml
+  values:
+    harbor:
+      url: ${ if hasKey .ClusterAnnotations "hosted-domain" }registry.${ .ClusterName }.${ get .ClusterAnnotations "hosted-domain" }${ end}
+      username: admin
+      password: admin
+labels:
+  app: private-registry-proxy-cache
+dependsOn:
+  - selector:
+      matchLabels:
+        app: harbor
+overrideTargets:
+  - clusterSelector:
+      matchLabels:
+        needs-private-registry: "true"

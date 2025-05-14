@@ -1,0 +1,12 @@
+helm:
+  chart: ""
+  releaseName: suse-registry
+  values:
+    registry: "registry.suse.com"
+  valuesFrom:
+    - secretKeyRef:
+        name: fleet-secrets
+        namespace: kube-system
+        key: suse-registry-values.yaml
+labels:
+  provides: suse-registry

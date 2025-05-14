@@ -1,0 +1,217 @@
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /harvester/cloudinit
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-cloudinit
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-cloudinit: "true"
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: hci-cloudinit
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  correctDrift: {}
+  paths:
+    - /harvester/cloudinit
+  targets:
+    - clusterGroup: hci-cloudinit
+
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /harvester/keypair
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-keypair
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-keypair: "true"
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: hci-keypair
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  correctDrift: {}
+  paths:
+    - /harvester/keypair
+  targets:
+    - clusterGroup: hci-keypair
+
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /harvester/loadbalancer
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-loadbalancer
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-loadbalancer: "true"
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: hci-loadbalancer
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  correctDrift: {}
+  paths:
+    - /harvester/loadbalancer
+  targets:
+    - clusterGroup: hci-loadbalancer
+
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /harvester/storageclass
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-storageclass
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-storageclass: "true"
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: hci-storageclass
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  correctDrift: {}
+  paths:
+    - /harvester/storageclass
+  targets:
+    - clusterGroup: hci-storageclass
+
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /harvester/vmnetwork
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-vmnetwork
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-vmnetwork: "true"
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: hci-vmnetwork
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  correctDrift: {}
+  paths:
+    - /harvester/vmnetwork
+  targets:
+    - clusterGroup: hci-vmnetwork
+
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /harvester/vmimage
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-vmimage
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-vmimage: "true"
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata: 
+  name: hci-vmimage
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  correctDrift: {}
+  paths:
+    - /harvester/vmimage
+  targets:
+    - clusterGroup: hci-vmimage
+# ——————————————————————————————————————————————
+# ClusterGroup + GitRepo for /helm-vmimages (Helm Chart)
+# ——————————————————————————————————————————————
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: ClusterGroup
+metadata:
+  name: hci-helm-vmimage        # Keeping the ClusterGroup name consistent
+  namespace: fleet-default
+spec:
+  selector:
+    matchLabels:
+      needs-hci-vmimage: "true" # Keep using the same label for targeting
+---
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: hci-helm-vmimage        # Keeping the GitRepo name consistent
+  namespace: fleet-default
+spec:
+  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  branch: main
+  # Removed the 'paths' key as we are now using Helm
+  paths:
+   - /harvester/vmimage # This line is removed or commented out
+
+  # Added Helm configuration
+  helm:
+    # Path to the directory containing Chart.yaml within the repo
+    # Assuming 'helm-vmimage' is at the root of the repo.
+    # If it's nested like '/harvester/helm-vmimages', adjust the path accordingly.
+    chart: /harvester/helm-vmimage
+
+    # A name for the Helm release that will be created in the target cluster
+    releaseName: harvester-helm-vmimage
+
+    # Optional: If you needed to override values from values.yaml
+    # values:
+    #   image:
+    #     namespace: "custom-namespace" # Example override
+
+    # Optional: Specify target namespace for Helm release resources
+    # By default, it often uses the release name or a default namespace.
+    # If your chart resources (like the image) need to be in 'default', ensure
+    # the chart's values.yaml specifies it or override here if needed.
+    # targetNamespace: default # Explicitly set if required, often handled by chart/values
+
+  correctDrift: {} # Keep existing correctDrift setting
+  targets:
+    - clusterGroup: hci-helm-vmimage # Keep targeting the same ClusterGroup

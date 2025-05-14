@@ -1,0 +1,9 @@
+apiVersion: v2
+name: application-collection
+description: Application Collection for Rancher
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Jeroen van Erp
+    email: jeroen@geeko.me

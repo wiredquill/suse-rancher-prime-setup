@@ -1,0 +1,9 @@
+apiVersion: v2
+name: harbor-proxy-cache
+description: Setup Harbor Proxy cache
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Jeroen van Erp
+    email: jeroen@geeko.me

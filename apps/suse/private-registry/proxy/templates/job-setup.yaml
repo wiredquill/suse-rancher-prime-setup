@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: harbor-setup-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: harbor-setup
+        image: opensuse/tumbleweed
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            zypper install -y jq
+            curl -X POST -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+              -H "Content-Type: application/json" \
+              --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
+              -d @- <<EOF
+              {
+                "credential": {
+                  "access_key": "$ACCESS_KEY",
+                  "access_secret": "$ACCESS_SECRET",
+                  "type": {{ .Values.registry.credential.type | quote }}
+                },
+                "insecure": {{ .Values.registry.insecure }},
+                "name": {{ .Values.registry.name | quote }},
+                "type": {{ .Values.registry.type | quote }},
+                "url": {{ .Values.registry.url | quote }}
+              }
+            EOF
+            REG_ID=$(curl -X GET -u $HARBOR_USERNAME:$HARBOR_PASSWORD https://{{ .Values.harbor.url }}/api/v2.0/registries | jq -r '.[] | select(.name == "{{ .Values.registry.name }}") | .id')
+            curl -X POST -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+              -H "Content-Type: application/json" \
+              --url https://{{ .Values.harbor.url }}/api/v2.0/projects \
+              -d @- <<EOF
+              {
+                "project_name": {{ .Values.registry.name | quote }},
+                "registry_id": $REG_ID,
+                "public": true
+              }
+            EOF
+        env:
+        - name: HARBOR_USERNAME
+          value: {{ .Values.harbor.username }}
+        - name: HARBOR_PASSWORD
+          value: {{ .Values.harbor.password }}
+        - name: REGISTRY_NAME
+          value: {{ .Values.registry.name }}
+        - name: ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appco-harbor-proxy-cache
+              key: access_key
+        - name: ACCESS_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: appco-harbor-proxy-cache
+              key: access_secret
+      restartPolicy: OnFailure

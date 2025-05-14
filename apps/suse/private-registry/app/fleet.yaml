@@ -1,0 +1,12 @@
+defaultNamespace: harbor
+helm:
+  chart: oci://registry.suse.com/private-registry/private-registry-helm
+  releaseName: private-registry
+  valuesFiles:
+    - values.yaml
+overrideTargets:
+  - clusterSelector:
+      matchLabels:
+        needs-private-registry: "true"
+labels:
+  app: harbor

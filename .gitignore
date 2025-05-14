@@ -23,3 +23,6 @@ go.work.sum
 
 # env file
 .env
+
+# Ignore DS_Store on the Mac
+**/.DS_Store

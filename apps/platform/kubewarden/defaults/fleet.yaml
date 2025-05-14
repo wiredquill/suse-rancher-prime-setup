@@ -1,0 +1,18 @@
+defaultNamespace: kubewarden
+helm:
+  chart: kubewarden-defaults
+  repo: https://charts.kubewarden.io
+  releaseName: kubewarden-defaults
+  values:
+    policyServer:
+      imagePullSecret: application-collection
+labels:
+  provides: kubewarden-defaults
+overrideTargets:
+  - clusterSelector:
+      matchLabels:
+        needs-kubewarden: "true"
+dependsOn:
+  - selector:
+      matchLabels:
+        provides: kubewarden-controller

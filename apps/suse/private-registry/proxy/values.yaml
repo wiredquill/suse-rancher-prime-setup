@@ -1,0 +1,15 @@
+harbor:
+  url: ""
+  username: "admin"
+  password: "Harbor12345"
+registry:
+  name: "application-collection"
+  url: "https://dp.apps.rancher.io"
+  type: "docker-registry"
+  insecure: false
+  credential:
+    type: "basic"
+    access_key: ""
+    access_secret: ""
+project:
+  name: "application-collection"

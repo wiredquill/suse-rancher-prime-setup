@@ -1,0 +1,20 @@
+defaultNamespace: cattle-neuvector-system
+helm:
+  chart: neuvector
+  repo: https://charts.rancher.io
+  version: "106.0.0+up2.8.5"
+  valuesFiles:
+    - values.yaml
+overrideTargets:
+  - clusterSelector:
+      matchLabels:
+        needs-security: "true"
+dependsOn:
+  - selector:
+      matchLabels:
+        provides: neuvector-crd
+  - selector:
+      matchLabels:
+        provides: longhorn
+labels:
+  provides: neuvector

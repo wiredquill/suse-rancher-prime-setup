@@ -1,0 +1,16 @@
+defaultNamespace: kubewarden
+helm:
+  chart: kubewarden-controller
+  repo: https://charts.kubewarden.io
+  releaseName: kubewarden-controller
+labels:
+  provides: kubewarden-controller
+overrideTargets:
+  - clusterSelector:
+      matchLabels:
+        needs-kubewarden: "true"
+dependsOn:
+  - selector:
+      matchLabels:
+        provides: kubewarden-crds
+
