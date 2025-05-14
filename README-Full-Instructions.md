@@ -1,7 +1,23 @@
 # Lab Setup Instructions
 
+The Cloud Native Tech Lab makes it easy for you to build a deploy demo environments that leverge SUSE technoly and utilizing either your own lab equpment of can be run entirley in the cloud.
+
+When you create Downstream Cluster, 
+
+Once the base system is installed you add capability to any cluster by simply adding a Kubernetes Label and Fleet will do the rest. Need SUSE Private Regisrty for a demo? Simple add the label, `needs-private-registry`=`true` sit back and in a matter of minutes you will have a SUSE private regsisty installed and fully configured (I.E. Proxy cache to Application Collection configured and ingress setup).
+
+Current supported Add Ones
+
+`needs-storage`  - Installs Longhorn, setups up default storageclass with 1 replica
+`needs-security` - Installs SUSE Security configures autoscan  
+`needs-ingress-nginx` - Installs and creates an ingress-nginx - needed for ALL k3s clusters (to support certs)
+`needs-private-registry` - Installs SUSE Private Registry and Creates a 
+
 ## Overview
 This document outlines the setup procedure for a demo lab environment utilizing Rancher and Kubernetes clusters.
+
+Once you have downstream clusters deployed in your main 
+
 
 ## Prerequisites
 
@@ -16,6 +32,7 @@ You will set up three separate clusters:
 #### 1. Rancher Management Cluster
 - Domain: `rancher.dna-42.com`
 - Resources:
+  - Cores: 2
   - RAM: 10 GB
   - Storage: 60 GB
 - Purpose: Hosting the Rancher Management Interface
@@ -27,8 +44,9 @@ You will set up three separate clusters:
     - `security.hangar-bay.dna-42.com`
     - `registry.hangar-bay.dna-42.com`
 - Resources:
-  - RAM: 10 GB
-  - Storage: 100 GB
+  - Cores: 4
+  - RAM: 16 GB
+  - Storage: 100-300 GB
 - Purpose: Persistent storage, container registry, and security services
 
 #### 3. Observability Cluster
@@ -36,10 +54,11 @@ You will set up three separate clusters:
   - Subdomains:
     - `longhorn.radar-station.dna-42.com`
     - `observability.radar-station.dna-42.com`
-- Kubernetes Distribution: RKE2
+- Kubernetes Distribution: k3s
 - Resources:
-  - RAM: 10 GB
-  - Storage: 100 GB
+  - Cores: 10
+  - RAM: 32 GB
+  - Storage: 300-500 GB
 - Purpose: Monitoring and observability tools
 
 ---
@@ -50,27 +69,6 @@ You will set up three separate clusters:
 
 Rancher version: `2.11.0`
 
-### Option 1: Docker Installation (Standalone)
-
-#### Prerequisites
-- Docker installed and running
-- Persistent storage directory: `/data/rancher`
-- Let's Encrypt certificates located at:
-  - Certificate: `/data/certs/fullchain.pem`
-  - Private Key: `/data/certs/privkey.pem`
-
-#### Installation Command
-```bash
-docker run -d --restart=unless-stopped \
-  --name rancher \
-  -p 80:80 -p 443:443 \
-  -v /data/rancher:/var/lib/rancher \
-  -v /data/certs/fullchain.pem:/etc/rancher/ssl/cert.pem \
-  -v /data/certs/privkey.pem:/etc/rancher/ssl/key.pem \
-  --privileged \
-  rancher/rancher:v2.11.0 \
-  --no-cacerts
-```
 
 ### Option 2: Kubernetes Installation (K3s with Helm)
 
