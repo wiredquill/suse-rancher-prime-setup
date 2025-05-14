@@ -1,32 +1,10 @@
 # Lab Setup Instructions
 
-## Overview
-
-The Cloud Native Tech Lab makes it easy for you to build and deploy demo environments that leverage SUSE technology and utilize either your own lab equipment or can be run entirely in the cloud.
-
-This document outlines the setup procedure for a demo lab environment utilizing Rancher and Kubernetes clusters.
-
-When you create a downstream cluster, by default every cluster gets the following:
-
-- `Secrets` - Imported from `downstream-cluster.yaml` - includes `SCC Credential`, `Application Collection Creds`, `Cloudflare Creds`, and `SUSE Observability Lic`.
-- `Sprouter` - Utility to copy secrets to all namespaces (application-collection, scc, etc.).
-- `Cert-Manager` - Installed and configured leveraging content from `downstream-cluster.yaml` and the `hosted-domain` annotation.
-- `Application Collection in Rancher UI` - Application Collection defined as a repository in the Rancher UI.
-
-Once the base system is installed, you add capability to any cluster by simply adding a Kubernetes label and Fleet will do the rest. Need SUSE Private Registry for a demo? Simply add the label `needs-private-registry=true`, sit back, and in a matter of minutes you will have a SUSE private registry installed and fully configured (i.e., proxy cache to Application Collection configured and ingress setup).
-
-Current supported add-ons:
-
-- `needs-storage`  - Installs Longhorn, sets up default storageclass with 1 replica.
-- `needs-security` - Installs SUSE Security, configures autoscan.  
-- `needs-ingress-nginx` - Installs and creates an ingress-nginx, needed for ALL k3s clusters (to support certs).
-- `needs-private-registry` - Installs SUSE Private Registry and creates a proxy cache for Application Collection (using your credentials).
-
 ## Prerequisites
 
 ### Domain Setup
 
-To ensure a production-like environment, we use real TLS certificates issued by Let's Encrypt (free) and DNS services hosted through Cloudflare (also free). You only need to own a domain and configure it in your Cloudflare account.
+To create a production-like environment, we use real TLS certificates issued by Let's Encrypt (free) and DNS services hosted through Cloudflare (also free). You only need to own a domain and configure it in your Cloudflare account.
 
 - Domain: `dna-42.com`
 - Cloudflare DNS Token
@@ -34,17 +12,15 @@ To ensure a production-like environment, we use real TLS certificates issued by 
 
 ### Cluster Requirements
 
-You can run as many or as few portions of the lab as you like. In order to run everything, you will need the following systems:
-
-Three separate clusters:
+You can run as many or as few parts of the lab as you wish. To run the full setup, you will need the following three clusters:
 
 #### 1. Rancher Management Cluster
 - DNS Domain: `rancher.dna-42.com`
 - Resources:
   - Cores: 2
-  - RAM: 10 GB
+  - RAM: 6 GB
   - Storage: 60 GB
-- Purpose: Hosting the Rancher Management Interface
+- Purpose: Hosts the Rancher Management Interface
 
 #### 2. Infrastructure Cluster (Longhorn, Registry, Security)
 - DNS Domain: `hangar-bay.dna-42.com`
@@ -56,7 +32,7 @@ Three separate clusters:
   - Cores: 4
   - RAM: 16 GB
   - Storage: 100-300 GB
-- Purpose: Persistent storage, container registry, and security services
+- Purpose: Provides persistent storage, container registry, and security services
 
 #### 3. Observability Cluster
 - DNS Domain: `radar-station.dna-42.com`
@@ -68,7 +44,7 @@ Three separate clusters:
   - Cores: 10
   - RAM: 32 GB
   - Storage: 300-500 GB
-- Purpose: Monitoring and observability tools
+- Purpose: Hosts monitoring and observability tools
 
 ---
 
@@ -76,28 +52,57 @@ Three separate clusters:
 
 ## Installing Rancher
 
-
-
 Rancher version: `2.11.1+`
 
-To install Rancher, follow the official Rancher installation guide for your environment. Ensure you have a Kubernetes cluster ready to host Rancher and that your DNS is configured to point to the Rancher server.
+Install the latest version of Rancher with proper Certificates. Here are 2 guides if you need help.
 
 [Install Rancher with Cloudflare DNS](Install-rancher-cloudflare-dns/README.md)
 
-[Install Rancher with BYO Certs](Install-rancher-byo-certs/README.md)
+[Install Rancher with BYO Certificates](Install-rancher-byo-certs/README.md)
 
-### Post-installation Configuration
+### Post-Installation Configuration
 
-After Rancher installation:
+After installing Rancher:
 
-- Access Rancher UI: `https://rancher.dna-42.com`
+#### 1. Change `agent-tls-mode to system-store`
+
+- Access the Rancher UI at: `https://rancher.dna-42.com`
 - Configure Global Settings:
   - Navigate to **Global Settings → Settings → agent-tls-mode**
-  - Set value to `system-store`
+  - Set the value to `system-store`
 
+![system-store](/assets/rancher-global-settings.gif)
 ---
 
-## Installing Downstream Infrastructure Cluster
+#### 2. Add Secrets
+=== Add Secrets to Rancher Manager
+
+Because there's a ton of secrets needed these are not stored in the repo. Instead you need to manually create this secrets in the Rancher Manager cluster.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: application-collection-basicauth
+  namespace: fleet-default
+type: kubernetes.io/basic-auth
+stringData:
+  username: <your_appco_username>
+  password: <your_appco_password>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: scc-suse-basicauth
+  namespace: fleet-default
+type: kubernetes.io/basic-auth
+stringData:
+  username: <your_scc_user>
+  password: <your_scc_password>
+```
+
+
+## Installing the Downstream Infrastructure Cluster
 
 Use the Rancher UI to create a downstream cluster with the following configuration:
 
@@ -106,7 +111,7 @@ Use the Rancher UI to create a downstream cluster with the following configurati
 
 Once the cluster is active, verify accessibility at `hangar-bay.dna-42.com`.
 
-## Installing Downstream Observability Cluster
+## Installing the Downstream Observability Cluster
 
 Use the Rancher UI to create a downstream cluster with the following configuration:
 
@@ -116,15 +121,15 @@ Use the Rancher UI to create a downstream cluster with the following configurati
 
 Once the cluster is active, verify accessibility at `radar-station.dna-42.com`.
 
-# Configure Clusters for Automatic Deployment
+# Configure Clusters for Fleet-Based Deployment
 
-## Create Configuration YAMLs
+## Create Configuration YAML Files
 
 First, customize the YAML files containing your authentication details, such as application collection tokens and Cloudflare tokens.
 
-Refer to the appropriate documentation to create these YAML files.
+Refer to the relevant documentation to prepare these YAML files.
 
-## Apply YAMLs to Clusters
+## Apply YAML Files to Clusters
 
 Apply the `local-cluster-fleet.yaml` to the main Rancher cluster (`local`). This file contains the core secrets required to run Fleet.
 
@@ -138,11 +143,9 @@ On your main Rancher cluster, use the Rancher UI to import your customized `loca
 
 Use the Rancher UI to deploy the `downstream-cluster-fleet.yaml` file to both `hangar-bay` and `radar-station` clusters.
 
-## Setup Hosted Domain Names
+## Set Up Hosted Domain Names
 
-Use the terminal provided by the Rancher UI in your local cluster and perform the following steps:
-
-Annotate the downstream clusters to specify their hosted domain for certificate creation:
+Using the terminal provided by the Rancher UI in your local cluster, annotate the downstream clusters to specify their hosted domain for certificate creation:
 
 ```bash
 kubectl annotate cluster.provisioning.cattle.io -n fleet-default hangar-bay "hosted-domain=dna-42.com"
@@ -152,7 +155,7 @@ kubectl annotate cluster.provisioning.cattle.io -n fleet-default radar-station "
 
 ## Configure Fleet to Install Nginx Ingress
 
-The K3s cluster `radar-station` does not yet have an ingress controller. Assign a label so Fleet can identify and install Nginx Ingress.
+The k3s cluster `radar-station` does not yet have an ingress controller. Assign a label so Fleet can identify and install Nginx Ingress.
 
 Run the following command in the Rancher UI terminal:
 
@@ -168,24 +171,24 @@ Use the Rancher UI to apply the `fleet/lab-setup.yaml` configuration to the `loc
 
 ## Wait for Deployment (5-10 minutes)
 
-Monitor both downstream clusters to verify that cert-manager is installed. In the Rancher UI, browse to the Workloads section and inspect the `cert-manager` namespace. Review the logs to confirm successful deployment.
+Monitor both downstream clusters to verify that cert-manager is installed. In the Rancher UI, navigate to the Workloads section and inspect the `cert-manager` namespace. Review the logs to confirm successful deployment.
 
-## Customize Downstream Clusters
+## Customize Downstream Clusters via Labels
 
-To install applications, apply the appropriate label to the target cluster.
+To install additional applications, apply the appropriate label to the target cluster.
 
-Apply one label at a time and allow the installation to complete before continuing. Start from the base of the stack (e.g., storage first if required).
+Apply one label at a time and wait for the installation to complete before proceeding. Start from the base of the stack (for example, storage first if required).
 
-| Label                     | Description               |
-|---------------------------|---------------------------|
-| `needs-storage=true`       | SUSE Storage              |
-| `needs-private-registry=true` | SUSE Private Registry     |
-| `needs-security=true`      | SUSE Security             |
-| `needs-observability=true` | Observability             |
+| Label                         | Description           |
+|-------------------------------|-----------------------|
+| `needs-storage=true`           | SUSE Storage          |
+| `needs-private-registry=true` | SUSE Private Registry |
+| `needs-security=true`          | SUSE Security         |
+| `needs-observability=true`     | Observability         |
 
 ## For Infrastructure Cluster `hangar-bay`
 
-Apply one label at a time and wait for it to fully complete before moving on to the next step. Always check the URL to verify everything is working.
+Apply one label at a time and wait for each installation to complete before moving on. Always verify each service by checking the corresponding URL.
 
 ### Install SUSE Storage
 
@@ -231,7 +234,7 @@ https://registry.hangar-bay.dna-42.com
 
 ## For Observability Cluster `radar-station`
 
-Apply one label at a time and wait for it to fully complete before moving on to the next step. Always check the URL to verify everything is working.
+Apply one label at a time and wait for each installation to complete before proceeding. Always verify each service by checking the corresponding URL.
 
 ### Install SUSE Storage
 
@@ -270,7 +273,7 @@ You can add the SUSE Observability Helm repository using either of the following
 **Option 1: Rancher UI**
 
 - Navigate to **Apps → Repositories** in the Rancher UI.
-- Add a new Helm repo with the following URL:
+- Add a new Helm repository with the following URL:
 
   ```
   https://charts.rancher.com/server-charts/prime/suse-observability
