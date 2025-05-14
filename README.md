@@ -9,9 +9,18 @@ You have several options for installation, ranging from manual to fully automate
   - `Harvester` Fully Automated - Use Pulumi to configure a previously installed Harvester Cluster (coming soon).
   - `Cloud Deployment` (coming soon).
 
+When you build a cluster, we rely on 3 key pieces of information
+ 
+  - local-cluster-fleet.yaml -  **Deployed on local** Contains Secrets to build clusters
+  - downstream-cluster-fleet.yaml - **Deployed on ALL downstream clusters** Contains including SCC Credential, Application Collection Credentials, Cloudflare Credentials, and SUSE Observability License 
+  - Annotation command on Cluster that tells us the `Hosted-domain` **Deployed on ALL Clusters
+    
+    `kubectl annotate cluster.provisioning.cattle.io -n fleet-default hangar-bay "hosted-domain=dna-42.com"`
+
+
 When you create a downstream cluster, each cluster is provisioned with the following by default:
 
-- `Secrets` - Imported from `downstream-cluster.yaml`, including SCC Credential, Application Collection Credentials, Cloudflare Credentials, and SUSE Observability License
+- `Secrets` - Imported from `downstream-cluster-fleet.yaml`, including SCC Credential, Application Collection Credentials, Cloudflare Credentials, and SUSE Observability License
 - `Sprouter` - A utility that copies secrets to all namespaces (such as application-collection, scc, etc.).
 - `Cert-Manager` - Installed and configured using the contents of `downstream-cluster.yaml` and the `hosted-domain` annotation.
 - `Application Collection in Rancher UI` - Defined as a repository in the Rancher UI.

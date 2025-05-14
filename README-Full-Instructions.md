@@ -75,9 +75,11 @@ After installing Rancher:
 ---
 
 #### 2. Add Secrets
-=== Add Secrets to Rancher Manager
+=== Add Secrets to Rancher Manager (local)
 
-Because there's a ton of secrets needed these are not stored in the repo. Instead you need to manually create this secrets in the Rancher Manager cluster.
+There's a ton of secrets needed these are not stored in the repo. Instead you need to manually create this secrets in the Rancher Manager cluster.
+
+Edit and customize this `local-secret.yaml` with your various authentication methods and deploy it to your local cluster
 
 ```yaml
 apiVersion: v1
@@ -101,6 +103,7 @@ stringData:
   password: <your_scc_password>
 ```
 
+![Import Local Secrets](/assets/rancher-local-import-secrets.gif)
 
 ## Installing the Downstream Infrastructure Cluster
 
@@ -125,9 +128,36 @@ Once the cluster is active, verify accessibility at `radar-station.dna-42.com`.
 
 ## Create Configuration YAML Files
 
+Every downstream cluster needs to have the `downstream-secrets.yaml` deployed
+
 First, customize the YAML files containing your authentication details, such as application collection tokens and Cloudflare tokens.
 
-Refer to the relevant documentation to prepare these YAML files.
+`downstream-cluster-fleet.yaml`
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: fleet-secrets
+  namespace: kube-system
+type: Opaque
+stringData:
+  appco-values.yaml: |
+    username: <your_appco_username>
+    token: <your_appco_token>
+  suse-registry-values.yaml: |
+    username: <your_scc_user>
+    token: <your_scc_password>
+  cert-manager-values.yaml: |
+    email: <your_letsencrypt_email>
+    cloudflare:
+      token: <your_cloudflare_token>
+  harbor-values.yaml: |
+    registry:
+      credential:
+        access_key: <your_appco_username>
+        access_secret: <your_appco_token>
+```
 
 ## Apply YAML Files to Clusters
 
