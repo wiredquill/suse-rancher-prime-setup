@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Config
+clusters:
+- name: "flightdeck"
+  cluster:
+    server: "https://10.2.97.5/k8s/clusters/local"
+    certificate-authority-data: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ2akNDQ\
+      VdPZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQkdNUnd3R2dZRFZRUUtFeE5rZVc1aGJXbGoKY\
+      kdsemRHVnVaWEl0YjNKbk1TWXdKQVlEVlFRRERCMWtlVzVoYldsamJHbHpkR1Z1WlhJdFkyRkFNV\
+      GMwTnpNdwpNelV6TmpBZUZ3MHlOVEExTVRVeE1EQTFNelphRncwek5UQTFNVE14TURBMU16WmFNR\
+      Vl4SERBYUJnTlZCQW9UCkUyUjVibUZ0YVdOc2FYTjBaVzVsY2kxdmNtY3hKakFrQmdOVkJBTU1IV\
+      1I1Ym1GdGFXTnNhWE4wWlc1bGNpMWoKWVVBeE56UTNNekF6TlRNMk1Ga3dFd1lIS29aSXpqMENBU\
+      VlJS29aSXpqMERBUWNEUWdBRTJKVW5MWFRIU0VCTApjRktYZ3BMNVVYZzAxK3hyMm91bTZRRkRWZ\
+      2liZVBkTmlFSktLZTBTVXlMWkxNdWlDL3hVT0lxa0pYMUQ5a3JHCjFOS2tXUGd2c3FOQ01FQXdEZ\
+      1lEVlIwUEFRSC9CQVFEQWdLa01BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0hRWUQKVlIwT0JCWUVGS\
+      0FTYmN2NTlPWGV2UGFWMEU4eEszUW4zS0JJTUFvR0NDcUdTTTQ5QkFNQ0Ewa0FNRVlDSVFEUwpaV\
+      mN6eWhLRWl5UkpEQW9FNHFaNDZWZnFkWFF3TitQQWNYVHQzbFBmY3dJaEFNdVQzQXIwSlVwcmdQV\
+      morblVBCi9jL1ptN2psblEvdXVFTWNXWS9DNVNPSAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t"
+
+users:
+- name: "flightdeck"
+  user:
+    token: "kubeconfig-user-xm4s4cb4m2:bkzjrc5llhbv26lc2rmgl69ktxt569p9n4blx86pl6z5mtf8q5sdbn"
+
+
+contexts:
+- name: "flightdeck"
+  context:
+    user: "flightdeck"
+    cluster: "flightdeck"
+

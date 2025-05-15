@@ -26,3 +26,6 @@ go.work.sum
 
 # Ignore DS_Store on the Mac
 **/.DS_Store
+
+.pnpm-store
+node_modules
