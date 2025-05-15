@@ -68,19 +68,3 @@ spec:
   repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
   targets:
     - clusterSelector: null # no clusters
----
-apiVersion: fleet.cattle.io/v1alpha1
-kind: GitRepo
-metadata:
-  name: lab-setup-demos
-  namespace: fleet-default
-spec:
-  branch: main
-  correctDrift: {}
-  paths:
-    - /demos
-  repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
-  targets:
-    - clusterSelector: null # no clusters
-  helmSecretName: application-collection-basicauth
-  helmRepoURLRegex: (oci|https)://dp.apps.rancher.io/*
