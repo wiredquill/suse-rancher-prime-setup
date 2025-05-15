@@ -161,17 +161,13 @@ stringData:
 
 ## Apply YAML Files to Clusters
 
-Apply the `local-cluster-fleet.yaml` to the main Rancher cluster (`local`). This file contains the core secrets required to run Fleet.
-
 Apply the `downstream-cluster-fleet.yaml` to all downstream clusters. This sets up the application collection, SCC configuration, and related settings.
-
-### Rancher Local Cluster
-
-On your main Rancher cluster, use the Rancher UI to import your customized `local-cluster-fleet.yaml` file.
 
 ### On `hangar-bay` and `radar-station`
 
 Use the Rancher UI to deploy the `downstream-cluster-fleet.yaml` file to both `hangar-bay` and `radar-station` clusters.
+
+
 
 ## Set Up Hosted Domain Names
 
