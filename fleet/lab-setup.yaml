@@ -21,7 +21,7 @@ spec:
   correctDrift: {}
   paths:
     - /apps/base
-  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
   targets:
     - clusterGroup: all-downstream-clusters
 ---
@@ -36,7 +36,7 @@ spec:
   helmSecretName: application-collection-basicauth
   paths:
     - /apps/appco
-  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
   targets:
     - clusterGroup: all-downstream-clusters
 ---
@@ -51,7 +51,7 @@ spec:
   helmSecretName: scc-suse-basicauth
   paths:
     - /apps/suse
-  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
   targets:
     - clusterSelector: null # no clusters
 ---
@@ -65,7 +65,7 @@ spec:
   correctDrift: {}
   paths:
     - /apps/platform
-  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
   targets:
     - clusterSelector: null # no clusters
 ---
@@ -79,7 +79,7 @@ spec:
   correctDrift: {}
   paths:
     - /demos
-  repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  repo: https://github.com/SUSE-Technical-Marketing/suse-rancher-prime-setup.git
   targets:
     - clusterSelector: null # no clusters
   helmSecretName: application-collection-basicauth
