@@ -66,6 +66,7 @@ spec:
   paths:
     - /apps/platform
   repo: https://github.com:SUSE-Technical-Marketing/suse-rancher-prime-setup.git
+  targets:
     - clusterSelector: null # no clusters
 ---
 apiVersion: fleet.cattle.io/v1alpha1
