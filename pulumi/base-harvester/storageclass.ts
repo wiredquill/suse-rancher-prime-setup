@@ -1,16 +1,17 @@
 import * as pulumi from "@pulumi/pulumi";
-import * as harvester from "../sdks/harvester";
+import * as k8s from "@pulumi/kubernetes";
 
 export function createSingleReplicaStorageClass(opts: pulumi.CustomResourceOptions) {
-    return new harvester.Storageclass("longhorn-single", {
-        name: "longhorn-single",
-        volumeProvisioner: "driver.longhorn.io",
+    return new k8s.storage.v1.StorageClass("longhorn-single", {
+        metadata: {
+            name: "longhorn-single",
+        },
+        provisioner: "driver.longhorn.io",
         parameters: {
             "numberOfReplicas": "1",
             "migratable": "true",
             "staleReplicaTimeout": "30",
         },
-        description: "Longhorn single replica storage class",
         volumeBindingMode: "Immediate",
         reclaimPolicy: "Delete",
         allowVolumeExpansion: true

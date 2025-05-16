@@ -1,5 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
-import * as harvester from "../sdks/harvester";
+import * as harvester from "./crds/nodejs/harvesterhci/v1beta1";
 
 const images = {
     "opensuse-leap-15.6-nc": {
@@ -20,14 +20,21 @@ const images = {
 }
 
 function addImage(name: string, image: any, opts: pulumi.CustomResourceOptions) {
-    return new harvester.Image(name, {
-        name: name,
-        displayName: image.displayName,
-        url: image.url,
-        sourceType: image.sourceType,
-        storageClassName: "longhorn-single",
-        namespace: "harvester-public"
-    }, opts).imageId;
+    return new harvester.VirtualMachineImage(name, {
+        metadata: {
+            name: name,
+            namespace: "harvester-public",
+            annotations: {
+                "pulumi.com/waitFor": "condition=Imported",
+                "harvesterhci.io/storageClassName": "longhorn-single",
+            }
+        },
+        spec: {
+            displayName: image.displayName,
+            url: image.url,
+            sourceType: image.sourceType
+        }
+    }, opts).id;
 }
 
 export function createImages(opts: pulumi.CustomResourceOptions) {
