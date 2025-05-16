@@ -15,6 +15,9 @@
     "files": [
         "harvesterhci/index.ts",
         "harvesterhci/v1beta1/index.ts",
+        "harvesterhci/v1beta1/keyPair.ts",
+        "harvesterhci/v1beta1/keyPairList.ts",
+        "harvesterhci/v1beta1/keyPairPatch.ts",
         "harvesterhci/v1beta1/virtualMachineImage.ts",
         "harvesterhci/v1beta1/virtualMachineImageList.ts",
         "harvesterhci/v1beta1/virtualMachineImagePatch.ts",
