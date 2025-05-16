@@ -157,6 +157,10 @@ stringData:
       credential:
         access_key: <your_appco_username>
         access_secret: <your_appco_token>
+  suse-observability-values.yaml: |
+    stackstate: 
+        license: 
+          key: "xxxx-xxxx-xxxx"
 ```
 
 ## Apply YAML Files to Clusters
