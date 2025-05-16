@@ -74,7 +74,7 @@ CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.31.6+k3s1" sh -
 ```
 
-#### Make the kubeconfig readable for user 'erin'
+#### configure kube config
 
 ```bash
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
