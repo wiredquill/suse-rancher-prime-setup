@@ -1,0 +1,8 @@
+version: '3'
+
+tasks:
+  generate-crd:
+    desc: Generate NodeJS code from CRDs
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - crd2pulumi --nodejs --force networkattachmentdefinition.yaml virtualmachineimage.yaml keypairs.yaml

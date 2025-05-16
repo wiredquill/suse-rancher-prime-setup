@@ -7,6 +7,63 @@ import * as outputs from "../types/output";
 
 export namespace harvesterhci {
     export namespace v1beta1 {
+        export interface KeyPair {
+            /**
+             * APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+             */
+            apiVersion?: pulumi.Input<"harvesterhci.io/v1beta1">;
+            /**
+             * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+             */
+            kind?: pulumi.Input<"KeyPair">;
+            /**
+             * Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+             */
+            metadata?: pulumi.Input<inputs.meta.v1.ObjectMeta>;
+            spec?: pulumi.Input<inputs.harvesterhci.v1beta1.KeyPairSpec>;
+            status?: pulumi.Input<inputs.harvesterhci.v1beta1.KeyPairStatus>;
+        }
+
+        export interface KeyPairSpec {
+            publicKey?: pulumi.Input<string>;
+        }
+
+        export interface KeyPairSpecPatch {
+            publicKey?: pulumi.Input<string>;
+        }
+
+        export interface KeyPairStatus {
+            conditions?: pulumi.Input<pulumi.Input<inputs.harvesterhci.v1beta1.KeyPairStatusConditions>[]>;
+            fingerPrint?: pulumi.Input<string>;
+        }
+
+        export interface KeyPairStatusConditions {
+            /**
+             * Last time the condition transitioned from one status to another.
+             */
+            lastTransitionTime?: pulumi.Input<string>;
+            /**
+             * The last time this condition was updated.
+             */
+            lastUpdateTime?: pulumi.Input<string>;
+            /**
+             * Human-readable message indicating details about last transition
+             */
+            message?: pulumi.Input<string>;
+            /**
+             * The reason for the condition's last transition.
+             */
+            reason?: pulumi.Input<string>;
+            /**
+             * Status of the condition, one of True, False, Unknown.
+             */
+            status?: pulumi.Input<string>;
+            /**
+             * Type of the condition.
+             */
+            type?: pulumi.Input<string>;
+        }
+
         export interface VirtualMachineImage {
             /**
              * APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources

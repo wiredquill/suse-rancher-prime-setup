@@ -5,6 +5,21 @@ import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "../../utilities";
 
 // Export members:
+export { KeyPairArgs } from "./keyPair";
+export type KeyPair = import("./keyPair").KeyPair;
+export const KeyPair: typeof import("./keyPair").KeyPair = null as any;
+utilities.lazyLoad(exports, ["KeyPair"], () => require("./keyPair"));
+
+export { KeyPairListArgs } from "./keyPairList";
+export type KeyPairList = import("./keyPairList").KeyPairList;
+export const KeyPairList: typeof import("./keyPairList").KeyPairList = null as any;
+utilities.lazyLoad(exports, ["KeyPairList"], () => require("./keyPairList"));
+
+export { KeyPairPatchArgs } from "./keyPairPatch";
+export type KeyPairPatch = import("./keyPairPatch").KeyPairPatch;
+export const KeyPairPatch: typeof import("./keyPairPatch").KeyPairPatch = null as any;
+utilities.lazyLoad(exports, ["KeyPairPatch"], () => require("./keyPairPatch"));
+
 export { VirtualMachineImageArgs } from "./virtualMachineImage";
 export type VirtualMachineImage = import("./virtualMachineImage").VirtualMachineImage;
 export const VirtualMachineImage: typeof import("./virtualMachineImage").VirtualMachineImage = null as any;
@@ -25,6 +40,12 @@ const _module = {
     version: utilities.getVersion(),
     construct: (name: string, type: string, urn: string): pulumi.Resource => {
         switch (type) {
+            case "kubernetes:harvesterhci.io/v1beta1:KeyPair":
+                return new KeyPair(name, <any>undefined, { urn })
+            case "kubernetes:harvesterhci.io/v1beta1:KeyPairList":
+                return new KeyPairList(name, <any>undefined, { urn })
+            case "kubernetes:harvesterhci.io/v1beta1:KeyPairPatch":
+                return new KeyPairPatch(name, <any>undefined, { urn })
             case "kubernetes:harvesterhci.io/v1beta1:VirtualMachineImage":
                 return new VirtualMachineImage(name, <any>undefined, { urn })
             case "kubernetes:harvesterhci.io/v1beta1:VirtualMachineImageList":

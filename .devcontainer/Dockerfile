@@ -26,4 +26,7 @@ RUN ARCH=$(uname -m) && \
     mv crd2pulumi $HOME/bin && \
     chmod +x $HOME/bin/crd2pulumi
 
+# Install task
+RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
+
 RUN echo "export PATH=$HOME/bin:\$PATH" >> $HOME/.bashrc
