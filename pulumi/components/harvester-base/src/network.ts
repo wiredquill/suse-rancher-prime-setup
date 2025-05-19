@@ -1,12 +1,12 @@
+import * as pulumi from "@pulumi/pulumi";
 import * as kubernetes from "@pulumi/kubernetes";
-import { NetworkAttachmentDefinition } from "./crds/nodejs/k8s/v1";
+import { NetworkAttachmentDefinition } from "../crds/nodejs/k8s/v1";
 
 function createNetworkAttachmentDefinition(
     name: string,
     annotations: { [key: string]: string },
     config: string,
-    provider: kubernetes.Provider
-): NetworkAttachmentDefinition {
+    opts: pulumi.CustomResourceOptions = {}): NetworkAttachmentDefinition {
     return new NetworkAttachmentDefinition(name, {
         metadata: {
             name: name,
@@ -16,10 +16,10 @@ function createNetworkAttachmentDefinition(
         spec: {
             config: config
         }
-    }, { provider });
+    }, opts);
 }
 
-export function createBackboneVlan(provider: kubernetes.Provider): NetworkAttachmentDefinition {
+export function createBackboneVlan(opts: pulumi.CustomResourceOptions): NetworkAttachmentDefinition {
     return createNetworkAttachmentDefinition(
         "backbone-vlan",
         {
@@ -28,6 +28,6 @@ export function createBackboneVlan(provider: kubernetes.Provider): NetworkAttach
             "network.harvesterhci.io/type": "UntaggedNetwork"
         },
         "{\"cniVersion\":\"0.3.1\",\"name\":\"backbone\",\"type\":\"bridge\",\"bridge\":\"mgmt-br\",\"promiscMode\":true,\"ipam\":{}}",
-        provider
+        opts
     );
 }

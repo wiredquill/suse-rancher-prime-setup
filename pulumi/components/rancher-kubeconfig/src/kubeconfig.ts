@@ -2,13 +2,25 @@ import * as pulumi from "@pulumi/pulumi";
 import axios from "axios";
 import https from "https";
 import * as yaml from "yaml";
-import { zstdCompress } from "zlib";
 
 export interface RancherKubeconfigOpts {
     url: pulumi.Input<string>;
     username: pulumi.Input<string>;
     password: pulumi.Input<string>;
     clusterName: pulumi.Input<string>;
+    insecure?: pulumi.Input<boolean>;
+}
+
+export class RancherKubeconfig extends pulumi.ComponentResource {
+    public kubeconfig: pulumi.Output<string>;
+    constructor(name: string, opts: RancherKubeconfigOpts, customResourceOptions?: pulumi.CustomResourceOptions) {
+        super("suse-tmm:components:rancher-kubeconfig", name, {}, customResourceOptions);
+
+        this.kubeconfig = getRancherKubeconfig(opts);
+        this.registerOutputs({
+            kubeconfig: this.kubeconfig
+        });
+    }
 }
 
 export function getRancherKubeconfig(opts: RancherKubeconfigOpts): pulumi.Output<string> {
@@ -28,11 +40,14 @@ export function getRancherKubeconfig(opts: RancherKubeconfigOpts): pulumi.Output
             return "";
         }
 
-        const kubeyaml = yaml.parse(kubeconfig);
-        kubeyaml.clusters[0].cluster["insecure-skip-tls-verify"] = true;
-        delete kubeyaml.clusters[0].cluster["certificate-authority-data"];
-
-        return yaml.stringify(kubeyaml);
+        if (opts.insecure) {
+            const kubeyaml = yaml.parse(kubeconfig);
+            kubeyaml.clusters[0].cluster["insecure-skip-tls-verify"] = true;
+            delete kubeyaml.clusters[0].cluster["certificate-authority-data"];
+            return yaml.stringify(kubeyaml);
+        } else {
+            return kubeconfig;
+        }
     });
 }
 

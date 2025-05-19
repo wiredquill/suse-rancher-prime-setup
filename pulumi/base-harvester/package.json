@@ -8,10 +8,7 @@
     "dependencies": {
         "@pulumi/kubernetes": "^4.23.0",
         "@pulumi/pulumi": "^3.169.0",
-        "@types/tmp": "^0.2.6",
-        "async-mutex": "^0.5.0",
-        "axios": "^1.9.0",
-        "tmp": "^0.2.3",
-        "yaml": "^2.8.0"
+        "@suse-tmm/harvester-base": "workspace:^",
+        "@suse-tmm/rancher-kubeconfig": "workspace:^"
     }
 }
