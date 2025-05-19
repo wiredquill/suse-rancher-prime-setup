@@ -7,68 +7,67 @@ import * as outputs from "../../types/output";
 import * as utilities from "../../utilities";
 
 /**
- * Patch resources are used to modify existing Kubernetes resources by using
- * Server-Side Apply updates. The name of the resource must be specified, but all other properties are optional. More than
- * one patch may be applied to the same resource, and a random FieldManager name will be used for each Patch resource.
- * Conflicts will result in an error by default, but can be forced using the "pulumi.com/patchForce" annotation. See the
- * [Server-Side Apply Docs](https://www.pulumi.com/registry/packages/kubernetes/how-to-guides/managing-resources-with-server-side-apply/) for
- * additional information about using Server-Side Apply to manage Kubernetes resources with Pulumi.
+ * VirtualMachine handles the VirtualMachines that are not running
+ * or are in a stopped state
+ * The VirtualMachine contains the template to create the
+ * VirtualMachineInstance. It also mirrors the running state of the created
+ * VirtualMachineInstance in its status.
  */
-export class KeyPairPatch extends pulumi.CustomResource {
+export class VirtualMachine extends pulumi.CustomResource {
     /**
-     * Get an existing KeyPairPatch resource's state with the given name, ID, and optional extra
+     * Get an existing VirtualMachine resource's state with the given name, ID, and optional extra
      * properties used to qualify the lookup.
      *
      * @param name The _unique_ name of the resulting resource.
      * @param id The _unique_ provider ID of the resource to lookup.
      * @param opts Optional settings to control the behavior of the CustomResource.
      */
-    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): KeyPairPatch {
-        return new KeyPairPatch(name, undefined as any, { ...opts, id: id });
+    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): VirtualMachine {
+        return new VirtualMachine(name, undefined as any, { ...opts, id: id });
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'kubernetes:harvesterhci.io/v1beta1:KeyPairPatch';
+    public static readonly __pulumiType = 'kubernetes:kubevirt.io/v1alpha3:VirtualMachine';
 
     /**
-     * Returns true if the given object is an instance of KeyPairPatch.  This is designed to work even
+     * Returns true if the given object is an instance of VirtualMachine.  This is designed to work even
      * when multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is KeyPairPatch {
+    public static isInstance(obj: any): obj is VirtualMachine {
         if (obj === undefined || obj === null) {
             return false;
         }
-        return obj['__pulumiType'] === KeyPairPatch.__pulumiType;
+        return obj['__pulumiType'] === VirtualMachine.__pulumiType;
     }
 
     /**
      * APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
      */
-    public readonly apiVersion!: pulumi.Output<"harvesterhci.io/v1beta1">;
+    public readonly apiVersion!: pulumi.Output<"kubevirt.io/v1alpha3">;
     /**
      * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
      */
-    public readonly kind!: pulumi.Output<"KeyPair">;
+    public readonly kind!: pulumi.Output<"VirtualMachine">;
     /**
      * Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
      */
-    public readonly metadata!: pulumi.Output<outputs.meta.v1.ObjectMetaPatch>;
-    public readonly spec!: pulumi.Output<outputs.harvesterhci.v1beta1.KeyPairSpecPatch>;
-    public /*out*/ readonly status!: pulumi.Output<outputs.harvesterhci.v1beta1.KeyPairStatusPatch>;
+    public readonly metadata!: pulumi.Output<outputs.meta.v1.ObjectMeta>;
+    public readonly spec!: pulumi.Output<outputs.kubevirt.v1alpha3.VirtualMachineSpec>;
+    public /*out*/ readonly status!: pulumi.Output<outputs.kubevirt.v1alpha3.VirtualMachineStatus>;
 
     /**
-     * Create a KeyPairPatch resource with the given unique name, arguments, and options.
+     * Create a VirtualMachine resource with the given unique name, arguments, and options.
      *
      * @param name The _unique_ name of the resource.
      * @param args The arguments to use to populate this resource's properties.
      * @param opts A bag of options that control this resource's behavior.
      */
-    constructor(name: string, args?: KeyPairPatchArgs, opts?: pulumi.CustomResourceOptions) {
+    constructor(name: string, args?: VirtualMachineArgs, opts?: pulumi.CustomResourceOptions) {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            resourceInputs["apiVersion"] = "harvesterhci.io/v1beta1";
-            resourceInputs["kind"] = "KeyPair";
+            resourceInputs["apiVersion"] = "kubevirt.io/v1alpha3";
+            resourceInputs["kind"] = "VirtualMachine";
             resourceInputs["metadata"] = args ? args.metadata : undefined;
             resourceInputs["spec"] = args ? args.spec : undefined;
             resourceInputs["status"] = undefined /*out*/;
@@ -80,25 +79,27 @@ export class KeyPairPatch extends pulumi.CustomResource {
             resourceInputs["status"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        super(KeyPairPatch.__pulumiType, name, resourceInputs, opts);
+        const aliasOpts = { aliases: [{ type: "kubernetes:kubevirt.io/v1:VirtualMachine" }] };
+        opts = pulumi.mergeOptions(opts, aliasOpts);
+        super(VirtualMachine.__pulumiType, name, resourceInputs, opts);
     }
 }
 
 /**
- * The set of arguments for constructing a KeyPairPatch resource.
+ * The set of arguments for constructing a VirtualMachine resource.
  */
-export interface KeyPairPatchArgs {
+export interface VirtualMachineArgs {
     /**
      * APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
      */
-    apiVersion?: pulumi.Input<"harvesterhci.io/v1beta1">;
+    apiVersion?: pulumi.Input<"kubevirt.io/v1alpha3">;
     /**
      * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
      */
-    kind?: pulumi.Input<"KeyPair">;
+    kind?: pulumi.Input<"VirtualMachine">;
     /**
      * Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
      */
-    metadata?: pulumi.Input<inputs.meta.v1.ObjectMetaPatch>;
-    spec?: pulumi.Input<inputs.harvesterhci.v1beta1.KeyPairSpecPatch>;
+    metadata?: pulumi.Input<inputs.meta.v1.ObjectMeta>;
+    spec?: pulumi.Input<inputs.kubevirt.v1alpha3.VirtualMachineSpec>;
 }

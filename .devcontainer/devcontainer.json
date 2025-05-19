@@ -12,7 +12,9 @@
         "catppuccin.catppuccin-vsc",
         "github.vscode-pull-request-github",
         "anweber.vscode-httpyac",
-        "rvest.vs-code-prettier-eslint"
+        "rvest.vs-code-prettier-eslint",
+        "hbenl.vscode-mocha-test-adapter",
+        "hbenl.vscode-test-explorer"
       ]
     }
   },

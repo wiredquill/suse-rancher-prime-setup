@@ -13,89 +13,99 @@ import * as utilities from "../../utilities";
  * Conflicts will result in an error by default, but can be forced using the "pulumi.com/patchForce" annotation. See the
  * [Server-Side Apply Docs](https://www.pulumi.com/registry/packages/kubernetes/how-to-guides/managing-resources-with-server-side-apply/) for
  * additional information about using Server-Side Apply to manage Kubernetes resources with Pulumi.
+ * VirtualMachine handles the VirtualMachines that are not running
+ * or are in a stopped state
+ * The VirtualMachine contains the template to create the
+ * VirtualMachineInstance. It also mirrors the running state of the created
+ * VirtualMachineInstance in its status.
  */
-export class NetworkAttachmentDefinitionPatch extends pulumi.CustomResource {
+export class VirtualMachinePatch extends pulumi.CustomResource {
     /**
-     * Get an existing NetworkAttachmentDefinitionPatch resource's state with the given name, ID, and optional extra
+     * Get an existing VirtualMachinePatch resource's state with the given name, ID, and optional extra
      * properties used to qualify the lookup.
      *
      * @param name The _unique_ name of the resulting resource.
      * @param id The _unique_ provider ID of the resource to lookup.
      * @param opts Optional settings to control the behavior of the CustomResource.
      */
-    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): NetworkAttachmentDefinitionPatch {
-        return new NetworkAttachmentDefinitionPatch(name, undefined as any, { ...opts, id: id });
+    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): VirtualMachinePatch {
+        return new VirtualMachinePatch(name, undefined as any, { ...opts, id: id });
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'kubernetes:k8s.cni.cncf.io/v1:NetworkAttachmentDefinitionPatch';
+    public static readonly __pulumiType = 'kubernetes:kubevirt.io/v1alpha3:VirtualMachinePatch';
 
     /**
-     * Returns true if the given object is an instance of NetworkAttachmentDefinitionPatch.  This is designed to work even
+     * Returns true if the given object is an instance of VirtualMachinePatch.  This is designed to work even
      * when multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is NetworkAttachmentDefinitionPatch {
+    public static isInstance(obj: any): obj is VirtualMachinePatch {
         if (obj === undefined || obj === null) {
             return false;
         }
-        return obj['__pulumiType'] === NetworkAttachmentDefinitionPatch.__pulumiType;
+        return obj['__pulumiType'] === VirtualMachinePatch.__pulumiType;
     }
 
     /**
      * APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
      */
-    public readonly apiVersion!: pulumi.Output<"k8s.cni.cncf.io/v1">;
+    public readonly apiVersion!: pulumi.Output<"kubevirt.io/v1alpha3">;
     /**
      * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
      */
-    public readonly kind!: pulumi.Output<"NetworkAttachmentDefinition">;
+    public readonly kind!: pulumi.Output<"VirtualMachine">;
     /**
      * Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
      */
     public readonly metadata!: pulumi.Output<outputs.meta.v1.ObjectMetaPatch>;
-    public readonly spec!: pulumi.Output<outputs.k8s.v1.NetworkAttachmentDefinitionSpecPatch>;
+    public readonly spec!: pulumi.Output<outputs.kubevirt.v1alpha3.VirtualMachineSpecPatch>;
+    public /*out*/ readonly status!: pulumi.Output<outputs.kubevirt.v1alpha3.VirtualMachineStatusPatch>;
 
     /**
-     * Create a NetworkAttachmentDefinitionPatch resource with the given unique name, arguments, and options.
+     * Create a VirtualMachinePatch resource with the given unique name, arguments, and options.
      *
      * @param name The _unique_ name of the resource.
      * @param args The arguments to use to populate this resource's properties.
      * @param opts A bag of options that control this resource's behavior.
      */
-    constructor(name: string, args?: NetworkAttachmentDefinitionPatchArgs, opts?: pulumi.CustomResourceOptions) {
+    constructor(name: string, args?: VirtualMachinePatchArgs, opts?: pulumi.CustomResourceOptions) {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            resourceInputs["apiVersion"] = "k8s.cni.cncf.io/v1";
-            resourceInputs["kind"] = "NetworkAttachmentDefinition";
+            resourceInputs["apiVersion"] = "kubevirt.io/v1alpha3";
+            resourceInputs["kind"] = "VirtualMachine";
             resourceInputs["metadata"] = args ? args.metadata : undefined;
             resourceInputs["spec"] = args ? args.spec : undefined;
+            resourceInputs["status"] = undefined /*out*/;
         } else {
             resourceInputs["apiVersion"] = undefined /*out*/;
             resourceInputs["kind"] = undefined /*out*/;
             resourceInputs["metadata"] = undefined /*out*/;
             resourceInputs["spec"] = undefined /*out*/;
+            resourceInputs["status"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        super(NetworkAttachmentDefinitionPatch.__pulumiType, name, resourceInputs, opts);
+        const aliasOpts = { aliases: [{ type: "kubernetes:kubevirt.io/v1:VirtualMachinePatch" }] };
+        opts = pulumi.mergeOptions(opts, aliasOpts);
+        super(VirtualMachinePatch.__pulumiType, name, resourceInputs, opts);
     }
 }
 
 /**
- * The set of arguments for constructing a NetworkAttachmentDefinitionPatch resource.
+ * The set of arguments for constructing a VirtualMachinePatch resource.
  */
-export interface NetworkAttachmentDefinitionPatchArgs {
+export interface VirtualMachinePatchArgs {
     /**
      * APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
      */
-    apiVersion?: pulumi.Input<"k8s.cni.cncf.io/v1">;
+    apiVersion?: pulumi.Input<"kubevirt.io/v1alpha3">;
     /**
      * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
      */
-    kind?: pulumi.Input<"NetworkAttachmentDefinition">;
+    kind?: pulumi.Input<"VirtualMachine">;
     /**
      * Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
      */
     metadata?: pulumi.Input<inputs.meta.v1.ObjectMetaPatch>;
-    spec?: pulumi.Input<inputs.k8s.v1.NetworkAttachmentDefinitionSpecPatch>;
+    spec?: pulumi.Input<inputs.kubevirt.v1alpha3.VirtualMachineSpecPatch>;
 }

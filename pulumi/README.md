@@ -10,14 +10,14 @@ pulumi login file://$(pwd)/pulumi-state
 
 ## Creating a new stack:
 ```bash
-cd base-harvester
+cd sample-setup
 pulumi stack init -s dev
 ```
 
 This will output:
 
 ```bash
-pulumi@60d2799eae2a:/workspaces/suse-rancher-prime-setup/pulumi/base-harvester> pulumi stack init -s dev
+pulumi@60d2799eae2a:/workspaces/suse-rancher-prime-setup/pulumi/sample-setup> pulumi stack init -s dev
 Enter your passphrase to protect config/secrets:
 Re-enter your passphrase to confirm:
 Created stack 'dev'
