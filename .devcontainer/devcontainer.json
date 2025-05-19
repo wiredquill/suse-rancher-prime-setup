@@ -11,7 +11,8 @@
         "mikestead.dotenv",
         "catppuccin.catppuccin-vsc",
         "github.vscode-pull-request-github",
-        "anweber.vscode-httpyac"
+        "anweber.vscode-httpyac",
+        "rvest.vs-code-prettier-eslint"
       ]
     }
   },

@@ -1,0 +1,5 @@
+packages:
+  - components/*
+onlyBuiltDependencies:
+  - '@pulumi/kubernetes'
+linkWorkspacePackages: true

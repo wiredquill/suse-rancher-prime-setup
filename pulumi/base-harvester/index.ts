@@ -1,12 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import {createSingleReplicaStorageClass} from "./storageclass";
-import { createImages } from "./vmimage";
-import { createBackboneVlan } from "./network";
-import { getRancherKubeconfig } from "./kubeconfig"
-import { fileSync } from "tmp";
-import { write, writeFileSync } from "fs";
-
+import * as harvester from "@suse-tmm/harvester-base";
+import * as rancher from "@suse-tmm/rancher-kubeconfig";
 
 export function provisionHarvesterBase() {
     const config = new pulumi.Config("harvester");
@@ -14,25 +9,27 @@ export function provisionHarvesterBase() {
     const username = config.require("username");
     const password = config.requireSecret("password");
 
-
-    getRancherKubeconfig({
+    const kubeconfig = new rancher.RancherKubeconfig("harvesterKubeconfig", {
         url: harvesterUrl,
         username: username,
         password: password,
         clusterName: "local",
-    }).apply((kubeconfig) => {
+        insecure: true, // Harvester normally has a self-signed cert
+    });
 
-        const kubeconfigFile = fileSync({ prefix: "kubeconfig", postfix: ".yaml" });
-        const fn = kubeconfigFile.name
-        writeFileSync(fn, kubeconfig);
+    const harvesterBase = new harvester.HarvesterBase("harvesterBase", {
+        kubeconfig: kubeconfig.kubeconfig,
+        extraImages: [
+            {
+                name: "fedora-cloud-42",
+                displayName: "Fedora Cloud 42",
+                url: "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2"
+            }
+        ]
+    });
 
-        const harvesterK8sProvider = new k8s.Provider("harvesterK8s", {
-            kubeconfig: fn,
-        });
-
-        const storageClass = createSingleReplicaStorageClass({ provider: harvesterK8sProvider });
-        createImages({ provider: harvesterK8sProvider, dependsOn: [storageClass] });
-        createBackboneVlan(harvesterK8sProvider);
+    pulumi.all([kubeconfig.kubeconfig]).apply(([kubeconfig]) => {
+        console.log(kubeconfig);
     });
 }
 
