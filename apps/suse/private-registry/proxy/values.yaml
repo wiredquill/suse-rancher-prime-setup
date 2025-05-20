@@ -27,10 +27,10 @@ proxyCacheTargets:
     # Optional: If this upstream registry requires authentication, include this block.
     # The script will use globally configured environment variables (e.g., ACCESS_KEY_FROM_ENV, ACCESS_SECRET_FROM_ENV)
     # for the actual 'access_key' and 'access_secret' values in the API call to Harbor.
-     upstreamCredentials:
-       type: "basic" # Type of credential Harbor expects (e.g., "basic", "oauth")
-       access_key_placeholder: "" # Informational, script uses env var
-       access_secret_placeholder: "" # Informational, script uses env var
+    upstreamCredentials:
+      type: "basic" # Type of credential Harbor expects (e.g., "basic", "oauth")
+      access_key_placeholder: "" # Informational, script uses env var
+      access_secret_placeholder: "" # Informational, script uses env var
 
   # Configurations from your provided proxyCacheTargets list
   - enabled: true
