@@ -3,8 +3,7 @@ harbor:
   url: "your-harbor.domain.com" # 👈 **Update this with your Harbor URL**
   username: "admin"
   password: "Harbor12345" # 👈 Consider using a Kubernetes secret for the password
-  insecureSkipVerify: false # Set to true if your Harbor uses a self-signed cert (adds -k to curl)
-
+ 
 # Global secret configuration for upstream registries requiring authentication.
 # The Job will fetch these values if a target in proxyCacheTargets defines 'upstreamCredentials'.
 upstreamAuthSecret:
