@@ -1,216 +1,67 @@
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {{ .Release.Name }}-harbor-setup-job # Making job name unique per release
-spec:
-  template:
-    spec:
-      containers:
-      - name: harbor-setup
-        # RECOMMENDED: Replace with a custom image having curl & jq pre-installed
-        # e.g., image: your-repo/curl-jq:latest
-        image: opensuse/tumbleweed
-        command: ["/bin/bash", "-c"]
-        args:
-          - |
-            set -e # Exit immediately if a command exits with a non-zero status.
-            set -x # Print commands and their arguments as they are executed.
+harbor:
+  url: "your-harbor.domain.com" # 👈 **Update this with your Harbor URL**
+  username: "admin"
+  password: "Harbor12345" # 👈 Consider using a Kubernetes secret for the password
+  insecureSkipVerify: false # Set to true if your Harbor uses a self-signed cert (adds -k to curl)
 
-            echo "INFO: Starting Harbor setup script..."
+# Global secret configuration for upstream registries requiring authentication.
+# The Job will fetch these values if a target in proxyCacheTargets defines 'upstreamCredentials'.
+upstreamAuthSecret:
+  # Name of the Kubernetes secret containing access_key and access_secret
+  name: "appco-harbor-proxy-cache" # 👈 This was your previous secret name
+  accessKeyField: "access_key"      # Key in the secret for the access_key
+  accessSecretField: "access_secret"  # Key in the secret for the access_secret
 
-            # Install jq (if not using a pre-built image)
-            if ! command -v jq &> /dev/null; then
-              echo "INFO: jq not found, installing..."
-              zypper ref && zypper install -y jq
-            fi
+proxyCacheTargets:
+  # Target derived from your previous 'registry:' and 'project:' sections
+  - enabled: true
+    endpointName: "application-collection-endpoint" # Name for the Harbor registry endpoint
+    projectName: "application-collection"          # Name for the Harbor project
+    upstreamUrl: "https://dp.apps.rancher.io"
+    providerType: "docker-registry"                # 'type' for Harbor registry endpoint config
+    publicProject: true                            # Whether the Harbor project should be public
+    insecureUpstream: false                        # If Harbor should use insecure connection to THIS upstream
+    # Optional: If this upstream registry requires authentication
+    upstreamCredentials:
+      type: "basic" # Type of credential Harbor expects (e.g., "basic")
+                    # access_key & access_secret are sourced from 'upstreamAuthSecret'
 
-            HARBOR_API_USER="${HARBOR_USERNAME_FROM_ENV}" # From K8s env
-            HARBOR_API_PASS="${HARBOR_PASSWORD_FROM_ENV}" # From K8s env
-            HARBOR_BASE_URL="https://{{ .Values.harbor.url }}/api/v2.0"
+  - enabled: true
+    endpointName: "dockerhub-endpoint"
+    projectName: "dockerhub-proxy"
+    upstreamUrl: "https://registry-1.docker.io"
+    providerType: "docker-hub"
+    publicProject: true
+    insecureUpstream: false
+    # Example: Uncomment and configure if your Docker Hub access requires auth
+    # upstreamCredentials:
+    #   type: "basic"
 
-            # Loop through each registry defined in Helm values
-            {{- range $index, $registry := .Values.registries }}
-            echo "======================================================================"
-            echo "INFO: Processing registry: {{ $registry.name }}"
-            echo "======================================================================"
+  - enabled: true
+    endpointName: "k8s-gcr-io-endpoint"
+    projectName: "k8s-proxy"
+    upstreamUrl: "https://registry.k8s.io" # Redirects to k8s.gcr.io
+    providerType: "docker-registry"
+    publicProject: true
+    insecureUpstream: false
+    # No upstreamCredentials block needed as registry.k8s.io is public
 
-            REGISTRY_NAME_VAR="{{ $registry.name }}"
-            UPSTREAM_URL_VAR="{{ $registry.upstreamUrl }}"
-            PROVIDER_TYPE_VAR="{{ $registry.providerType }}"
-            INSECURE_UPSTREAM_VAR={{ $registry.insecureUpstream | default false }}
+  - enabled: true
+    endpointName: "ghcr-io-endpoint"
+    projectName: "ghcr-proxy"
+    upstreamUrl: "https://ghcr.io"
+    providerType: "docker-registry" # Or "github-ghcr" if Harbor has specific support
+    publicProject: true
+    insecureUpstream: false
+    # GitHub Container Registry (ghcr.io) often requires a Personal Access Token (PAT).
+    upstreamCredentials: # Example of enabling credentials for this target
+      type: "basic" # Use 'basic' (GitHub username for access_key, PAT for access_secret from env vars)
 
-            CREDENTIAL_JSON_BLOCK="" # Initialize as empty
-
-            {{- if $registry.needsUpstreamAuth }}
-            # This registry needs authentication. It will use the shared upstream credentials
-            # passed via environment variables ACCESS_KEY_FROM_ENV and ACCESS_SECRET_FROM_ENV.
-            echo "INFO: Registry '{{ $registry.name }}' requires upstream authentication."
-            UPSTREAM_AUTH_TYPE_VAR="{{ $registry.upstreamAuthType | default "basic" }}"
-            # Note: Variables inside heredoc for CREDENTIAL_JSON_BLOCK are expanded by `cat`
-            # We need to ensure $ACCESS_KEY_FROM_ENV and $ACCESS_SECRET_FROM_ENV are correctly passed to the shell.
-            CREDENTIAL_JSON_BLOCK=$(cat <<EOF_CRED_BLOCK
-                "credential": {
-                  "access_key": "${ACCESS_KEY_FROM_ENV}",
-                  "access_secret": "${ACCESS_SECRET_FROM_ENV}",
-                  "type": "${UPSTREAM_AUTH_TYPE_VAR}"
-                },
-            EOF_CRED_BLOCK
-            )
-            {{- else }}
-            echo "INFO: Registry '{{ $registry.name }}' does not require upstream authentication."
-            {{- end }}
-
-            # Construct JSON payload for creating the registry endpoint
-            REGISTRY_ENDPOINT_PAYLOAD=$(cat <<EOF_REG_PAYLOAD
-            {
-              ${CREDENTIAL_JSON_BLOCK}
-              "name": "${REGISTRY_NAME_VAR}",
-              "url": "${UPSTREAM_URL_VAR}",
-              "type": "${PROVIDER_TYPE_VAR}",
-              "insecure": ${INSECURE_UPSTREAM_VAR},
-              "description": "Harbor proxy cache endpoint for ${REGISTRY_NAME_VAR}"
-            }
-EOF_REG_PAYLOAD
-            )
-
-            echo "INFO: Creating/Updating registry endpoint for '${REGISTRY_NAME_VAR}'..."
-            echo "DEBUG: Registry Endpoint Payload:"
-            echo "${REGISTRY_ENDPOINT_PAYLOAD}"
-
-            # Check if registry endpoint exists
-            EXISTING_REG_ID=$(curl -s -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-              "${HARBOR_BASE_URL}/registries?q=name%3D%3D${REGISTRY_NAME_VAR}" | jq -r '.[0].id // empty')
-
-            if [ -n "${EXISTING_REG_ID}" ]; then
-              echo "INFO: Registry endpoint '${REGISTRY_NAME_VAR}' already exists with ID ${EXISTING_REG_ID}. Attempting to update."
-              HTTP_STATUS_REG=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-                -H "Content-Type: application/json" \
-                --url "${HARBOR_BASE_URL}/registries/${EXISTING_REG_ID}" \
-                -d "${REGISTRY_ENDPOINT_PAYLOAD}")
-              REG_ID=${EXISTING_REG_ID}
-            else
-              echo "INFO: Registry endpoint '${REGISTRY_NAME_VAR}' does not exist. Creating."
-              HTTP_STATUS_REG=$(curl -s -o /dev/null -w "%{http_code}" -X POST -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-                -H "Content-Type: application/json" \
-                --url "${HARBOR_BASE_URL}/registries" \
-                -d "${REGISTRY_ENDPOINT_PAYLOAD}")
-              REG_ID="" # Will fetch it next
-            fi
-
-            if [ "${HTTP_STATUS_REG}" -ge 200 ] && [ "${HTTP_STATUS_REG}" -lt 300 ]; then
-              echo "INFO: Registry endpoint '${REGISTRY_NAME_VAR}' operation successful (HTTP ${HTTP_STATUS_REG})."
-            else
-              echo "ERROR: Failed to create/update registry endpoint '${REGISTRY_NAME_VAR}' (HTTP ${HTTP_STATUS_REG}). Check Harbor logs."
-              # Decide if you want to continue to next registry or exit:
-              # exit 1 # Fail the job
-              echo "WARNING: Continuing to next registry if any."
-              continue # This 'continue' is for the Helm 'range' loop effectively
-            fi
-
-            # If we just created it, or to be sure, fetch the REG_ID
-            if [ -z "${REG_ID}" ]; then
-              echo "INFO: Fetching REG_ID for '${REGISTRY_NAME_VAR}'..."
-              for attempt in 1 2 3; do
-                REG_ID=$(curl -s -X GET -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-                  "${HARBOR_BASE_URL}/registries?q=name%3D%3D${REGISTRY_NAME_VAR}" | jq -r '.[0].id // empty')
-                if [ -n "$REG_ID" ]; then
-                  echo "INFO: Found REG_ID: $REG_ID for '${REGISTRY_NAME_VAR}'."
-                  break
-                fi
-                echo "WARN: REG_ID not found for '${REGISTRY_NAME_VAR}' on attempt $attempt, retrying in 5s..."
-                sleep 5
-              done
-            fi
-
-            if [ -z "$REG_ID" ]; then
-              echo "ERROR: Could not retrieve REG_ID for '${REGISTRY_NAME_VAR}'. Skipping project creation."
-              continue # Skip to next registry in Helm 'range'
-            fi
-
-            # Construct JSON payload for creating the project
-            # The project name will be the same as the registry name.
-            PROJECT_PAYLOAD=$(cat <<EOF_PROJ_PAYLOAD
-            {
-              "project_name": "${REGISTRY_NAME_VAR}",
-              "registry_id": ${REG_ID},
-              "public": true,
-              "metadata": {
-                "public": "true"
-              }
-            }
-EOF_PROJ_PAYLOAD
-            )
-
-            echo "INFO: Creating/Checking project '${REGISTRY_NAME_VAR}'..."
-            echo "DEBUG: Project Payload:"
-            echo "${PROJECT_PAYLOAD}"
-
-            # Check if project exists
-            # Harbor API for projects doesn't directly support ?q=name==... for GET /projects to find by name to get ID for PUT
-            # So we attempt POST and handle conflict, or check if it's already a proxy for this reg_id
-            EXISTING_PROJECT_RAW=$(curl -s -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-              "${HARBOR_BASE_URL}/projects?project_name=${REGISTRY_NAME_VAR}")
-
-            # jq '.[0]' handles if it returns an array (found) or null (not found by name, though API might return empty array)
-            EXISTING_PROJECT_ID=$(echo "${EXISTING_PROJECT_RAW}" | jq -r '.[0].project_id // empty')
-            EXISTING_PROJECT_REG_ID=$(echo "${EXISTING_PROJECT_RAW}" | jq -r '.[0].registry_id // empty')
-
-
-            if [ -n "${EXISTING_PROJECT_ID}" ]; then
-                echo "INFO: Project '${REGISTRY_NAME_VAR}' already exists with ID ${EXISTING_PROJECT_ID}."
-                if [ "${EXISTING_PROJECT_REG_ID}" == "${REG_ID}" ]; then
-                    echo "INFO: Project '${REGISTRY_NAME_VAR}' is already correctly configured as a proxy for registry ID ${REG_ID}."
-                else
-                    echo "WARNING: Project '${REGISTRY_NAME_VAR}' exists but is NOT configured as a proxy for registry ID ${REG_ID} (current registry_id: ${EXISTING_PROJECT_REG_ID}). Manual intervention may be required if you intended to change its proxy target."
-                fi
-            else
-                echo "INFO: Project '${REGISTRY_NAME_VAR}' does not exist. Creating."
-                HTTP_STATUS_PROJ=$(curl -s -o /dev/null -w "%{http_code}" -X POST -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-                  -H "Content-Type: application/json" \
-                  --url "${HARBOR_BASE_URL}/projects" \
-                  -d "${PROJECT_PAYLOAD}")
-
-                if [ "${HTTP_STATUS_PROJ}" -ge 200 ] && [ "${HTTP_STATUS_PROJ}" -lt 300 ]; then
-                  echo "INFO: Project '${REGISTRY_NAME_VAR}' creation successful (HTTP ${HTTP_STATUS_PROJ})."
-                elif [ "${HTTP_STATUS_PROJ}" == "409" ]; then # Conflict, likely means project name exists
-                  echo "WARNING: Project '${REGISTRY_NAME_VAR}' creation failed with HTTP 409 (Conflict). It might already exist but was not matched by the GET query, or has a conflicting name."
-                  # Attempt to fetch its details again to see if it's correctly configured.
-                  EXISTING_PROJECT_RAW_AGAIN=$(curl -s -u "${HARBOR_API_USER}:${HARBOR_API_PASS}" \
-                    "${HARBOR_BASE_URL}/projects?project_name=${REGISTRY_NAME_VAR}")
-                  EXISTING_PROJECT_ID_AGAIN=$(echo "${EXISTING_PROJECT_RAW_AGAIN}" | jq -r '.[0].project_id // empty')
-                  EXISTING_PROJECT_REG_ID_AGAIN=$(echo "${EXISTING_PROJECT_RAW_AGAIN}" | jq -r '.[0].registry_id // empty')
-                  if [ "${EXISTING_PROJECT_REG_ID_AGAIN}" == "${REG_ID}" ]; then
-                      echo "INFO: Confirmed project '${REGISTRY_NAME_VAR}' (ID ${EXISTING_PROJECT_ID_AGAIN}) is correctly configured as a proxy for registry ID ${REG_ID} despite initial 409."
-                  else
-                      echo "ERROR: Project '${REGISTRY_NAME_VAR}' (ID ${EXISTING_PROJECT_ID_AGAIN}) exists but seems misconfigured or is not a proxy for registry ID ${REG_ID}."
-                  fi
-                else
-                  echo "ERROR: Failed to create project '${REGISTRY_NAME_VAR}' (HTTP ${HTTP_STATUS_PROJ}). Check Harbor logs."
-                fi
-            fi
-            echo "INFO: Finished processing for registry: {{ $registry.name }}"
-            {{- end }} # End of Helm range loop
-
-            echo "INFO: Harbor setup job completed successfully."
-      restartPolicy: OnFailure
-      env:
-      # Harbor API credentials (populated by Helm from .Values.harbor.*)
-      - name: HARBOR_USERNAME_FROM_ENV
-        value: {{ .Values.harbor.username | quote }}
-      - name: HARBOR_PASSWORD_FROM_ENV
-        value: {{ .Values.harbor.password | quote }}
-
-      # Upstream shared credentials (populated by Helm from .Values.upstreamSharedCredentials.*)
-      # These are used if any $registry.needsUpstreamAuth is true
-      - name: ACCESS_KEY_FROM_ENV
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.upstreamSharedCredentials.k8sSecretName | quote }}
-            key: {{ .Values.upstreamSharedCredentials.accessKeyField | quote }}
-            optional: true # Set to false if these keys MUST exist in the secret
-      - name: ACCESS_SECRET_FROM_ENV
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.upstreamSharedCredentials.k8sSecretName | quote }}
-            key: {{ .Values.upstreamSharedCredentials.accessSecretField | quote }}
-            optional: true # Set to false if these keys MUST exist in the secret
+  - enabled: true
+    endpointName: "rancherprime-reg-endpoint"
+    projectName: "rancherprime-proxy"
+    upstreamUrl: "http://registry.rancher.com" # Note: HTTP
+    providerType: "docker-registry"
+    publicProject: true
+    insecureUpstream: true # Since the URL is HTTP
+    # No upstreamCredentials block needed if public, otherwise add it.
