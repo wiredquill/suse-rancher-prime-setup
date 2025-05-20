@@ -2,9 +2,9 @@
 set -e
 source ./config.env
 kubectl create namespace cattle-system || true
-helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+helm repo add rancher-prime https://charts.rancher.com/server-charts/prime
 helm repo update
-helm install rancher rancher-latest/rancher \
+helm install rancher rancher-prime/rancher \
   --namespace cattle-system \
   --set hostname=$RANCHER_HOSTNAME \
   --set ingress.tls.source=secret \
@@ -13,4 +13,5 @@ helm install rancher rancher-latest/rancher \
   --set replicas=1 \
   --set global.cattle.psp.enabled=false \
   --set bootstrapPassword=admin
+  --version=2.11.1
 kubectl rollout status deployment rancher -n cattle-system --timeout=300s
