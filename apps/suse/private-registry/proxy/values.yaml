@@ -13,3 +13,67 @@ registry:
     access_secret: ""
 project:
   name: "application-collection"
+# List of Harbor proxy cache targets to be configured
+proxyCacheTargets:
+  # Configuration derived from your previous 'registry:' and 'project:' sections
+  - enabled: true
+    endpointName: "application-collection-endpoint" # Name for the Harbor registry endpoint
+    projectName: "application-collection"          # Name for the Harbor project
+    upstreamUrl: "https://dp.apps.rancher.io"
+    providerType: "docker-registry"                # 'type' for Harbor registry endpoint config
+    publicProject: true                            # Whether the Harbor project should be public
+    insecureUpstream: false                        # If Harbor should use insecure connection to this upstream
+
+    # Optional: If this upstream registry requires authentication, include this block.
+    # The script will use globally configured environment variables (e.g., ACCESS_KEY_FROM_ENV, ACCESS_SECRET_FROM_ENV)
+    # for the actual 'access_key' and 'access_secret' values in the API call to Harbor.
+     upstreamCredentials:
+       type: "basic" # Type of credential Harbor expects (e.g., "basic", "oauth")
+       access_key_placeholder: "" # Informational, script uses env var
+       access_secret_placeholder: "" # Informational, script uses env var
+
+  # Configurations from your provided proxyCacheTargets list
+  - enabled: true
+    endpointName: "dockerhub-endpoint"
+    projectName: "dockerhub-proxy"
+    upstreamUrl: "https://registry-1.docker.io"
+    providerType: "docker-hub"
+    publicProject: true
+    # For Docker Hub, you might need authentication for higher rate limits.
+    # If so, include the upstreamCredentials block.
+    # upstreamCredentials:
+    #   type: "basic"
+      # access_key_placeholder: ""
+      # access_secret_placeholder: ""
+
+  - enabled: true
+    endpointName: "k8s-gcr-io-endpoint"
+    projectName: "k8s-proxy"
+    upstreamUrl: "https://registry.k8s.io" # This redirects to k8s.gcr.io
+    providerType: "docker-registry"
+    publicProject: true
+    # No upstreamCredentials block needed as k8s.gcr.io is public
+
+  - enabled: true
+    endpointName: "ghcr-io-endpoint"
+    projectName: "ghcr-proxy"
+    upstreamUrl: "https://ghcr.io"
+    providerType: "docker-registry"
+    publicProject: true
+    # GitHub Container Registry (ghcr.io) often requires a Personal Access Token (PAT).
+    upstreamCredentials: # Example of enabling credentials for this target
+      type: "basic" # Use 'basic' (GitHub username for access_key, PAT for access_secret from env vars)
+      # access_key_placeholder: "your-github-username" # Informational
+      # access_secret_placeholder: "PAT-goes-here-from-env" # Informational
+
+  - enabled: true
+    endpointName: "rancherprime-reg-endpoint"
+    projectName: "rancherprime-proxy"
+    upstreamUrl: "http://registry.rancher.com" # Note: HTTP
+    providerType: "docker-registry"
+    publicProject: true
+    insecureUpstream: true # Since the URL is HTTP
+    # No upstreamCredentials block needed if public, otherwise add it.
+
+# You can add more proxy targets to the list above by following the same structure.
+# For any target that needs authentication, add the 'upstreamCredentials' block and define its 'type'.
