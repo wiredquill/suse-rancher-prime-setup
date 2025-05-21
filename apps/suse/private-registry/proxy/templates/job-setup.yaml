@@ -7,190 +7,53 @@ spec:
     spec:
       containers:
       - name: harbor-setup
-        image: opensuse/tumbleweed # Sticking to your original image
+        image: opensuse/tumbleweed
         command: ["/bin/bash", "-c"]
         args:
           - |
-            set -e # Exit immediately if a command exits with a non-zero status.
-            echo "Starting Harbor setup script..."
-            echo "Installing prerequisites: jq curl"
-            zypper install -y jq curl
-
-            CURL_OPTS=""
-            {{ if .Values.harbor.insecureSkipVerify }}
-            CURL_OPTS="-k"
-            echo "Harbor API calls will skip TLS verification (-k enabled)."
-            {{ end }}
-
-            HARBOR_API_URL="https://{{ .Values.harbor.url }}/api/v2.0"
-
-            {{ range $target := .Values.proxyCacheTargets }}
-            {{ if $target.enabled }}
-            echo "----------------------------------------------------------------------"
-            echo "Processing Target: {{ $target.endpointName }} / Project: {{ $target.projectName }}"
-            echo "----------------------------------------------------------------------"
-
-            # 1. Configure Registry Endpoint
-            echo "Checking if registry endpoint '{{ $target.endpointName }}' already exists..."
-            # Harbor API uses 'q' for query, names need to be exact or use wildcards.
-            # For exact name, using jq client-side filtering after getting all might be simpler if q is problematic for exact match.
-            # Let's try specific query: /registries?q=name%3D{{ $target.endpointName | urlquery }}
-            # If above is not reliable for exact match, use broader query and jq:
-            # EXISTING_REG_ID=$(curl $CURL_OPTS -s -X GET -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" "${HARBOR_API_URL}/registries" | jq -r --arg name "{{ $target.endpointName }}" '.[] | select(.name == $name) | .id')
-            
-            # Using the query parameter method:
-            EXISTING_REG_ID=$(curl $CURL_OPTS -s -X GET -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
-              "${HARBOR_API_URL}/registries?q=name%3D{{ $target.endpointName | urlquery }}" | jq -r '.[0].id // empty')
-
-            REG_ID="$EXISTING_REG_ID"
-
-            if [ -n "$REG_ID" ]; then
-                echo "Registry endpoint '{{ $target.endpointName }}' already exists with ID: $REG_ID. Using existing."
-            else
-                echo "Registry endpoint '{{ $target.endpointName }}' does not exist. Attempting to create..."
-                REGISTRY_JSON_BASE=$(printf '"insecure": %s, "name": %s, "type": %s, "url": %s' \
-                    "{{ $target.insecureUpstream | default false }}" \
-                    "{{ $target.endpointName | quote }}" \
-                    "{{ $target.providerType | quote }}" \
-                    "{{ $target.upstreamUrl | quote }}")
-
-                REGISTRY_PAYLOAD_FINAL=""
-                {{ if and $target.upstreamCredentials $target.upstreamCredentials.type }}
-                if [ -n "$ACCESS_KEY" ] && [ -n "$ACCESS_SECRET" ]; then
-                  CREDENTIAL_PART=$(printf '"credential": { "access_key": "%s", "access_secret": "%s", "type": %s }' \
-                    "$ACCESS_KEY" "$ACCESS_SECRET" {{ $target.upstreamCredentials.type | quote }} )
-                  REGISTRY_PAYLOAD_FINAL=$(printf '{ %s, %s }' "$CREDENTIAL_PART" "$REGISTRY_JSON_BASE")
-                  echo "Endpoint will be created with upstream credentials (type: {{ $target.upstreamCredentials.type }})."
-                else
-                  echo "Warning: Upstream credentials specified for '{{ $target.endpointName }}' but ACCESS_KEY or ACCESS_SECRET env var is not set/empty. Proceeding without upstream credentials."
-                  REGISTRY_PAYLOAD_FINAL=$(printf '{ %s }' "$REGISTRY_JSON_BASE")
-                fi
-                {{ else }}
-                REGISTRY_PAYLOAD_FINAL=$(printf '{ %s }' "$REGISTRY_JSON_BASE")
-                echo "Endpoint will be created without upstream credentials."
-                {{ end }}
-
-                echo "Registry creation payload: $REGISTRY_PAYLOAD_FINAL"
-                CREATE_RESPONSE_CODE=$(curl $CURL_OPTS -s -o /dev/null -w "%{http_code}" -X POST -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
-                  -H "Content-Type: application/json" \
-                  --url "${HARBOR_API_URL}/registries" \
-                  -d "$REGISTRY_PAYLOAD_FINAL")
-
-                if [ "$CREATE_RESPONSE_CODE" -eq 201 ]; then # 201 Created
-                    echo "Registry endpoint '{{ $target.endpointName }}' created successfully."
-                    # Fetch ID of the newly created registry
-                    REG_ID=$(curl $CURL_OPTS -s -X GET -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
-                        "${HARBOR_API_URL}/registries?q=name%3D{{ $target.endpointName | urlquery }}" | jq -r '.[0].id // empty')
-                    if [ -z "$REG_ID" ]; then
-                       echo "Error: Successfully created '{{ $target.endpointName }}' but could not fetch its ID!"
-                    fi
-                elif [ "$CREATE_RESPONSE_CODE" -eq 409 ]; then # 409 Conflict - already exists
-                    echo "Registry endpoint '{{ $target.endpointName }}' already exists (received 409 Conflict). Fetching its ID."
-                    REG_ID=$(curl $CURL_OPTS -s -X GET -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
-                        "${HARBOR_API_URL}/registries?q=name%3D{{ $target.endpointName | urlquery }}" | jq -r '.[0].id // empty')
-                else
-                    echo "Error: Failed to create registry endpoint '{{ $target.endpointName }}'. HTTP status: $CREATE_RESPONSE_CODE"
-                    # Attempt to get body for more info if curl was writing to a file:
-                    # curl $CURL_OPTS -s -X POST ... -D headers.txt -o body.txt ; cat body.txt
-                    REG_ID="" # Ensure REG_ID is empty on failure
-                fi
-            fi
-
-            # 2. Configure Project
-            if [ -z "$REG_ID" ]; then
-              echo "Skipping project creation for '{{ $target.projectName }}' because REG_ID for '{{ $target.endpointName }}' could not be determined."
-            else
-              echo "Using REG_ID: $REG_ID for endpoint '{{ $target.endpointName }}'."
-              echo "Checking if project '{{ $target.projectName }}' already exists..."
-              PROJECT_CHECK_URL="${HARBOR_API_URL}/projects?project_name={{ $target.projectName | urlquery }}"
-              PROJECT_EXISTS_STATUS=$(curl $CURL_OPTS -s -o /dev/null -w "%{http_code}" -X GET -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" "$PROJECT_CHECK_URL")
-
-              if [ "$PROJECT_EXISTS_STATUS" -eq 200 ]; then
-                echo "Project '{{ $target.projectName }}' already exists. Ensuring it is configured as a proxy project."
-                # Potentially GET the project and check its registry_id if necessary, though Harbor UI might be better for complex checks.
-                # For now, we assume if it exists, it's either correct or to be manually reviewed.
-                # If you want to update existing project's registry_id, it's a PUT to /projects/{project_id_or_name}
-                # This script focuses on creation.
-                # echo "Project '{{ $target.projectName }}' already exists. Skipping creation."
-                # Let's try to update the project, which can set registry_id if it's not set, or confirm it.
-                # A PUT to /projects/{project_id_or_name} can update metadata.
-                # The 'registry_id' for a proxy project must be set.
-                PROJECT_UPDATE_PAYLOAD=$(printf '{
-                  "project_name": %s,
-                  "registry_id": %s,
-                  "public": %s,
-                  "metadata": {
-                     "public": "%s"
-                  }
-                }' "{{ $target.projectName | quote }}" \
-                   "$REG_ID" \
-                   "{{ $target.publicProject | default true }}" \
-                   "{{ $target.publicProject | default true }}") # metadata.public is string "true"/"false"
-                
-                echo "Attempting to update/ensure project '{{ $target.projectName }}' is configured with registry ID $REG_ID."
-                echo "Project update payload: $PROJECT_UPDATE_PAYLOAD"
-                UPDATE_PROJECT_CODE=$(curl $CURL_OPTS -s -o /dev/null -w "%{http_code}" -X PUT -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
-                  -H "Content-Type: application/json" \
-                  --url "${HARBOR_API_URL}/projects/{{ $target.projectName }}" \
-                  -d "$PROJECT_UPDATE_PAYLOAD")
-
-                if [ "$UPDATE_PROJECT_CODE" -eq 200 ]; then
-                    echo "Project '{{ $target.projectName }}' updated/verified successfully."
-                else
-                    # This might happen if the project exists but is not a proxy project, and you try to set registry_id.
-                    echo "Warning: Failed to update project '{{ $target.projectName }}' (HTTP Status: $UPDATE_PROJECT_CODE). It might already exist with conflicting settings or type."
-                fi
-
-              elif [ "$PROJECT_EXISTS_STATUS" -eq 404 ]; then
-                echo "Project '{{ $target.projectName }}' does not exist. Creating..."
-                PROJECT_PAYLOAD=$(printf '{
-                  "project_name": %s,
-                  "registry_id": %s,
-                  "public": %s,
-                  "metadata": {
-                     "public": "%s"
-                  }
-                }' "{{ $target.projectName | quote }}" \
-                   "$REG_ID" \
-                   "{{ $target.publicProject | default true }}" \
-                   "{{ $target.publicProject | default true }}") # metadata.public is string "true"/"false"
-
-                echo "Project creation payload: $PROJECT_PAYLOAD"
-                CREATE_PROJECT_CODE=$(curl $CURL_OPTS -s -o /dev/null -w "%{http_code}" -X POST -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
-                  -H "Content-Type: application/json" \
-                  --url "${HARBOR_API_URL}/projects" \
-                  -d "$PROJECT_PAYLOAD")
-
-                if [ "$CREATE_PROJECT_CODE" -eq 201 ]; then
-                    echo "Project '{{ $target.projectName }}' created successfully."
-                else
-                    echo "Error: Failed to create project '{{ $target.projectName }}'. HTTP status: $CREATE_PROJECT_CODE"
-                fi
-              else
-                echo "Warning: Could not reliably determine if project '{{ $target.projectName }}' exists (HTTP status: $PROJECT_EXISTS_STATUS). Check Harbor manually."
-              fi
-            fi
-            {{ end }} {{/* if $target.enabled */}}
-            {{ end }} {{/* end range */}}
-            echo "----------------------------------------------------------------------"
-            echo "Harbor setup script finished."
+            zypper install -y jq
+            curl -X POST -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+              -H "Content-Type: application/json" \
+              --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
+              -d @- <<EOF
+              {
+                "credential": {
+                  "access_key": "$ACCESS_KEY",
+                  "access_secret": "$ACCESS_SECRET",
+                  "type": {{ .Values.registry.credential.type | quote }}
+                },
+                "insecure": {{ .Values.registry.insecure }},
+                "name": {{ .Values.registry.name | quote }},
+                "type": {{ .Values.registry.type | quote }},
+                "url": {{ .Values.registry.url | quote }}
+              }
+            EOF
+            REG_ID=$(curl -X GET -u $HARBOR_USERNAME:$HARBOR_PASSWORD https://{{ .Values.harbor.url }}/api/v2.0/registries | jq -r '.[] | select(.name == "{{ .Values.registry.name }}") | .id')
+            curl -X POST -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+              -H "Content-Type: application/json" \
+              --url https://{{ .Values.harbor.url }}/api/v2.0/projects \
+              -d @- <<EOF
+              {
+                "project_name": {{ .Values.registry.name | quote }},
+                "registry_id": $REG_ID,
+                "public": true
+              }
+            EOF
         env:
         - name: HARBOR_USERNAME
           value: {{ .Values.harbor.username }}
         - name: HARBOR_PASSWORD
           value: {{ .Values.harbor.password }}
-        # ACCESS_KEY and ACCESS_SECRET are used if a target specifies upstreamCredentials
-        # and the upstreamAuthSecret is correctly configured.
+        - name: REGISTRY_NAME
+          value: {{ .Values.registry.name }}
         - name: ACCESS_KEY
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.upstreamAuthSecret.name }}
-              key: {{ .Values.upstreamAuthSecret.accessKeyField }}
-              optional: true # Pod will start even if secret/key is missing. Script handles empty env var.
+              name: appco-harbor-proxy-cache
+              key: access_key
         - name: ACCESS_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.upstreamAuthSecret.name }}
-              key: {{ .Values.upstreamAuthSecret.accessSecretField }}
-              optional: true # Pod will start even if secret/key is missing. Script handles empty env var.
+              name: appco-harbor-proxy-cache
+              key: access_secret
       restartPolicy: OnFailure
