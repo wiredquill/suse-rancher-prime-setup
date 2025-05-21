@@ -1,67 +1,15 @@
-# Global Harbor configuration
 harbor:
-  url: "your-harbor.domain.com" # 👈 **Update this with your Harbor URL**
+  url: ""
   username: "admin"
-  password: "Harbor12345" # 👈 Consider using a Kubernetes secret for the password
- 
-# Global secret configuration for upstream registries requiring authentication.
-# The Job will fetch these values if a target in proxyCacheTargets defines 'upstreamCredentials'.
-upstreamAuthSecret:
-  # Name of the Kubernetes secret containing access_key and access_secret
-  name: "appco-harbor-proxy-cache" # 👈 This was your previous secret name
-  accessKeyField: "access_key"      # Key in the secret for the access_key
-  accessSecretField: "access_secret"  # Key in the secret for the access_secret
-
-proxyCacheTargets:
-  # Target derived from your previous 'registry:' and 'project:' sections
-  - enabled: true
-    endpointName: "application-collection-endpoint" # Name for the Harbor registry endpoint
-    projectName: "application-collection"          # Name for the Harbor project
-    upstreamUrl: "https://dp.apps.rancher.io"
-    providerType: "docker-registry"                # 'type' for Harbor registry endpoint config
-    publicProject: true                            # Whether the Harbor project should be public
-    insecureUpstream: false                        # If Harbor should use insecure connection to THIS upstream
-    # Optional: If this upstream registry requires authentication
-    upstreamCredentials:
-      type: "basic" # Type of credential Harbor expects (e.g., "basic")
-                    # access_key & access_secret are sourced from 'upstreamAuthSecret'
-
-  - enabled: true
-    endpointName: "dockerhub-endpoint"
-    projectName: "dockerhub-proxy"
-    upstreamUrl: "https://registry-1.docker.io"
-    providerType: "docker-hub"
-    publicProject: true
-    insecureUpstream: false
-    # Example: Uncomment and configure if your Docker Hub access requires auth
-    # upstreamCredentials:
-    #   type: "basic"
-
-  - enabled: true
-    endpointName: "k8s-gcr-io-endpoint"
-    projectName: "k8s-proxy"
-    upstreamUrl: "https://registry.k8s.io" # Redirects to k8s.gcr.io
-    providerType: "docker-registry"
-    publicProject: true
-    insecureUpstream: false
-    # No upstreamCredentials block needed as registry.k8s.io is public
-
-  - enabled: true
-    endpointName: "ghcr-io-endpoint"
-    projectName: "ghcr-proxy"
-    upstreamUrl: "https://ghcr.io"
-    providerType: "docker-registry" # Or "github-ghcr" if Harbor has specific support
-    publicProject: true
-    insecureUpstream: false
-    # GitHub Container Registry (ghcr.io) often requires a Personal Access Token (PAT).
-    upstreamCredentials: # Example of enabling credentials for this target
-      type: "basic" # Use 'basic' (GitHub username for access_key, PAT for access_secret from env vars)
-
-  - enabled: true
-    endpointName: "rancherprime-reg-endpoint"
-    projectName: "rancherprime-proxy"
-    upstreamUrl: "http://registry.rancher.com" # Note: HTTP
-    providerType: "docker-registry"
-    publicProject: true
-    insecureUpstream: true # Since the URL is HTTP
-    # No upstreamCredentials block needed if public, otherwise add it.
+  password: "Harbor12345"
+registry:
+  name: "application-collection"
+  url: "https://dp.apps.rancher.io"
+  type: "docker-registry"
+  insecure: false
+  credential:
+    type: "basic"
+    access_key: ""
+    access_secret: ""
+project:
+  name: "application-collection"
