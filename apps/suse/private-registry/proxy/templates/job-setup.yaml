@@ -5,55 +5,68 @@ metadata:
 spec:
   template:
     spec:
-      containers:
-      - name: harbor-setup
-        image: opensuse/tumbleweed
-        command: ["/bin/bash", "-c"]
-        args:
-          - |
-            zypper install -y jq
-            curl -X POST -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
-              -H "Content-Type: application/json" \
-              --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
-              -d @- <<EOF
-              {
-                "credential": {
-                  "access_key": "$ACCESS_KEY",
-                  "access_secret": "$ACCESS_SECRET",
-                  "type": {{ .Values.registry.credential.type | quote }}
-                },
-                "insecure": {{ .Values.registry.insecure }},
-                "name": {{ .Values.registry.name | quote }},
-                "type": {{ .Values.registry.type | quote }},
-                "url": {{ .Values.registry.url | quote }}
-              }
-            EOF
-            REG_ID=$(curl -X GET -u $HARBOR_USERNAME:$HARBOR_PASSWORD https://{{ .Values.harbor.url }}/api/v2.0/registries | jq -r '.[] | select(.name == "{{ .Values.registry.name }}") | .id')
-            curl -X POST -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
-              -H "Content-Type: application/json" \
-              --url https://{{ .Values.harbor.url }}/api/v2.0/projects \
-              -d @- <<EOF
-              {
-                "project_name": {{ .Values.registry.name | quote }},
-                "registry_id": $REG_ID,
-                "public": true
-              }
-            EOF
-        env:
-        - name: HARBOR_USERNAME
-          value: {{ .Values.harbor.username }}
-        - name: HARBOR_PASSWORD
-          value: {{ .Values.harbor.password }}
-        - name: REGISTRY_NAME
-          value: {{ .Values.registry.name }}
-        - name: ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: appco-harbor-proxy-cache
-              key: access_key
-        - name: ACCESS_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: appco-harbor-proxy-cache
-              key: access_secret
       restartPolicy: OnFailure
+      containers:
+        - name: harbor-setup
+          image: opensuse/tumbleweed
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+              set -euo pipefail
+              zypper install -y jq
+
+              {{- range .Values.registries }}
+              echo "👉  Creating proxy cache for {{ .name }}…"
+
+              # build JSON payload
+              read -r -d '' PAYLOAD <<EOF
+              {
+                {{- if and .credential.access_key .credential.access_secret }}
+                "credential": {
+                  "access_key": "{{ .credential.access_key }}",
+                  "access_secret": "{{ .credential.access_secret }}",
+                  "type": {{ .credential.type | quote }}
+                },
+                {{- end }}
+                "insecure": {{ .insecure }},
+                "name": {{ .name | quote }},
+                "type": {{ .type | quote }},
+                "url": {{ .url | quote }}
+              }
+              EOF
+
+              # create registry
+              curl -X POST \
+                -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+                -H "Content-Type: application/json" \
+                --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
+                -d "${PAYLOAD}"
+
+              # grab the new registry's ID
+              REG_ID=$(curl -s -X GET \
+                -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+                --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
+                | jq -r '.[] | select(.name=="{{ .name }}") | .id')
+
+              # create project on that registry
+              curl -X POST \
+                -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+                -H "Content-Type: application/json" \
+                --url https://{{ .Values.harbor.url }}/api/v2.0/projects \
+                -d @- <<EOP
+              {
+                "project_name": {{ .Values.project.name | quote }},
+                "registry_id": $REG_ID,
+                "public": {{ .Values.project.public | default true }}
+              }
+              EOP
+
+              echo "✅  Done {{ .name }}"
+              {{- end }}
+          env:
+            - name: HARBOR_USERNAME
+              value: {{ .Values.harbor.username | quote }}
+            - name: HARBOR_PASSWORD
+              value: {{ .Values.harbor.password | quote }}
