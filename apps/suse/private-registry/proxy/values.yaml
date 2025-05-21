@@ -2,9 +2,7 @@ harbor:
   url: ""
   username: "admin"
   password: "Harbor12345"
-project:
-  name: "application-collection"
-
+  
 registries:
   - name: "docker.io"
     url: "https://registry-1.docker.io"
