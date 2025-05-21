@@ -50,3 +50,8 @@ registries:
     url: "http://registry.rancher.com"
     type: "docker-registry"
     insecure: false
+
+  - name: "k8s"
+    url: "http://registry.k8s.io"
+    type: "docker-registry"
+    insecure: false
