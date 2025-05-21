@@ -21,13 +21,14 @@ spec:
               {{- range .Values.registries }}
               echo "👉  Creating proxy cache for {{ .name }}…"
 
+              # 1) create the registry
               curl -X POST \
                 -u "${HARBOR_USERNAME}:${HARBOR_PASSWORD}" \
                 -H "Content-Type: application/json" \
                 --url "https://${HARBOR_URL}/api/v2.0/registries" \
                 -d @- <<EOF
               {
-                {{- with .credential }}
+              {{- with .credential }}
                 {{- if and .access_key .access_secret }}
                 "credential": {
                   "access_key": "{{ .access_key }}",
@@ -35,7 +36,7 @@ spec:
                   "type": {{ .type | quote }}
                 },
                 {{- end }}
-                {{- end }}
+              {{- end }}
                 "insecure": {{ .insecure }},
                 "name": {{ .name | quote }},
                 "type": {{ .type | quote }},
@@ -43,20 +44,23 @@ spec:
               }
               EOF
 
+              # 2) grab the new registry's ID
               REG_ID=$(curl -s \
                 -u "${HARBOR_USERNAME}:${HARBOR_PASSWORD}" \
                 --url "https://${HARBOR_URL}/api/v2.0/registries" \
                 | jq -r '.[] | select(.name=="{{ .name }}") | .id')
 
+              # 3) create a project named the same as the registry, linked to that registry ID
+              echo "👉  Creating project {{ .name }}…"
               curl -X POST \
                 -u "${HARBOR_USERNAME}:${HARBOR_PASSWORD}" \
                 -H "Content-Type: application/json" \
                 --url "https://${HARBOR_URL}/api/v2.0/projects" \
                 -d @- <<EOP
               {
-                "project_name": {{ $.Values.project.name | quote }},
+                "project_name": {{ .name | quote }},
                 "registry_id": $REG_ID,
-                "public": {{ $.Values.project.public | default true }}
+                "public": true
               }
               EOP
 
