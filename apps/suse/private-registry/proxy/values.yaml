@@ -40,13 +40,13 @@ registries:
     #  access_key: "<YOUR_QUAY_USER>"
     #  access_secret: "<YOUR_QUAY_PASS>"
 
-  - name: "registry-suse"
+  - name: "suse"
     url: "http://registry.suse.com"
     type: "docker-registry"
     insecure: true
 
 
-  - name: "registry-rancher"
+  - name: "rancher"
     url: "http://registry.rancher.com"
     type: "docker-registry"
     insecure: false
