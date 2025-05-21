@@ -7,66 +7,68 @@ spec:
     spec:
       restartPolicy: OnFailure
       containers:
-        - name: harbor-setup
-          image: opensuse/tumbleweed
-          command:
-            - /bin/bash
-            - -c
-          args:
-            - |
-              set -euo pipefail
-              zypper install -y jq
+      - name: harbor-setup
+        image: opensuse/tumbleweed
+        command:
+        - /bin/bash
+        - -c
+        args:
+        - |
+          set -euo pipefail
+          zypper install -y jq
 
-              {{- range .Values.registries }}
-              echo "👉  Creating proxy cache for {{ .name }}…"
+          {{- range .Values.registries }}
+          echo "👉  Creating proxy cache for {{ .name }}…"
 
-              # build JSON payload
-              read -r -d '' PAYLOAD <<EOF
-              {
-                {{- if and .credential.access_key .credential.access_secret }}
-                "credential": {
-                  "access_key": "{{ .credential.access_key }}",
-                  "access_secret": "{{ .credential.access_secret }}",
-                  "type": {{ .credential.type | quote }}
-                },
-                {{- end }}
-                "insecure": {{ .insecure }},
-                "name": {{ .name | quote }},
-                "type": {{ .type | quote }},
-                "url": {{ .url | quote }}
-              }
-              EOF
+          # build JSON payload
+          read -r -d '' PAYLOAD <<EOF
+          {
+          {{- with .credential }}
+            {{- if and .access_key .access_secret }}
+            "credential": {
+              "access_key": "{{ .access_key }}",
+              "access_secret": "{{ .access_secret }}",
+              "type": {{ .type | quote }}
+            },
+            {{- end }}
+          {{- end }}
+            "insecure": {{ .insecure }},
+            "name": {{ .name | quote }},
+            "type": {{ .type | quote }},
+            "url": {{ .url | quote }}
+          }
+          EOF
 
-              # create registry
-              curl -X POST \
-                -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
-                -H "Content-Type: application/json" \
-                --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
-                -d "${PAYLOAD}"
+          # create registry
+          curl -X POST \
+            -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+            -H "Content-Type: application/json" \
+            --url https://{{ $.Values.harbor.url }}/api/v2.0/registries \
+            -d "${PAYLOAD}"
 
-              # grab the new registry's ID
-              REG_ID=$(curl -s -X GET \
-                -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
-                --url https://{{ .Values.harbor.url }}/api/v2.0/registries \
-                | jq -r '.[] | select(.name=="{{ .name }}") | .id')
+          # grab the new registry's ID
+          REG_ID=$(curl -s -X GET \
+            -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+            --url https://{{ $.Values.harbor.url }}/api/v2.0/registries \
+            | jq -r '.[] | select(.name=="{{ .name }}") | .id')
 
-              # create project on that registry
-              curl -X POST \
-                -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
-                -H "Content-Type: application/json" \
-                --url https://{{ .Values.harbor.url }}/api/v2.0/projects \
-                -d @- <<EOP
-              {
-                "project_name": {{ .Values.project.name | quote }},
-                "registry_id": $REG_ID,
-                "public": {{ .Values.project.public | default true }}
-              }
-              EOP
+          # create project on that registry
+          curl -X POST \
+            -u $HARBOR_USERNAME:$HARBOR_PASSWORD \
+            -H "Content-Type: application/json" \
+            --url https://{{ $.Values.harbor.url }}/api/v2.0/projects \
+            -d @- <<EOP
+          {
+            "project_name": {{ $.Values.project.name | quote }},
+            "registry_id": $REG_ID,
+            "public": {{ $.Values.project.public | default true }}
+          }
+          EOP
 
-              echo "✅  Done {{ .name }}"
-              {{- end }}
-          env:
-            - name: HARBOR_USERNAME
-              value: {{ .Values.harbor.username | quote }}
-            - name: HARBOR_PASSWORD
-              value: {{ .Values.harbor.password | quote }}
+          echo "✅  Done {{ .name }}"
+          {{- end }}
+        env:
+        - name: HARBOR_USERNAME
+          value: {{ .Values.harbor.username | quote }}
+        - name: HARBOR_PASSWORD
+          value: {{ .Values.harbor.password | quote }}
